@@ -1,12 +1,28 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Navbar from '../components/NavBar';
 import Hero from '../components/HeroSection';
 import Features from '../components/FeaturesSection';
 import About from '../components/AboutSection';
+import AuthModal from '../components/AuthModal';
+import { AnimatePresence } from 'framer-motion';
 
 export default function Home() {
-  const handleAuthClick = (action) => {
-    console.log('Auth action:', action);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authType, setAuthType] = useState('login');
+
+  useEffect(() => {
+    const handleAuthEvent = (e) => {
+      setAuthType(e.detail.type);
+      setShowAuthModal(true);
+    };
+
+    document.addEventListener('openAuth', handleAuthEvent);
+    return () => document.removeEventListener('openAuth', handleAuthEvent);
+  }, []);
+
+  const handleAuthClick = (type) => {
+    setAuthType(type);
+    setShowAuthModal(true);
   };
 
   return (
@@ -15,6 +31,15 @@ export default function Home() {
       <Hero onAuthClick={handleAuthClick} />
       <Features />
       <About />
+      
+      <AnimatePresence>
+        {showAuthModal && (
+          <AuthModal 
+            type={authType} 
+            onClose={() => setShowAuthModal(false)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -5,7 +5,7 @@ import { features } from '../utils/data';
 
 const FeaturesSection = () => {
   return (
-    <section id="features" className="py-20 px-4 md:px-8 bg-gradient-to-b from-void-black to-symbiote-purple/20">
+    <section id="features" className="py-20 px-4 md:px-8 bg-gradient-to-b from-symbiote-purple/20 to-symbiote-purple/30">
       <div className="max-w-7xl mx-auto">
         <motion.h2 
           className="text-4xl font-bold text-center mb-16"

@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 
 const HeroSection = ({ onAuthClick }) => {
   return (
-    <section id="hero" className="relative pt-32 pb-16 px-4 md:px-8">
+    <section id="hero" className="relative pt-32 pb-16 px-4 md:px-8 bg-gradient-to-b from-void-black to-symbiote-purple/20">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

@@ -5,7 +5,7 @@ import { cardHover } from '../utils/animations';
 
 const AboutSection = () => {
   return (
-    <section id="about" className="py-20 px-4 md:px-8 bg-gradient-to-b from-symbiote-purple/20 to-void-black">
+    <section id="about" className="py-20 px-4 md:px-8 bg-gradient-to-b from-symbiote-purple/30 to-void-black">
       <div className="max-w-7xl mx-auto">
         <motion.h2 
           className="text-4xl font-bold text-center mb-16"
