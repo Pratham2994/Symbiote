@@ -98,7 +98,8 @@ const registerUser = async (req, res) => {
         if (!email || !password) {
             return res.status(400).json({ message: 'Email and password are required' });
         }
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        
+        const emailRegex = /^[^\s@]+@somaiya\.edu$/;
         if (!emailRegex.test(email)) {
             return res.status(400).json({ message: 'Invalid email format' });
         }
@@ -207,34 +208,52 @@ const registerUser = async (req, res) => {
 };
 
 const loginUser = async (req, res) => {
-    const { email, password } = req.body;
     try {
+        // ensure email and password    
+        const { email, password } = req.body;
+        if (!email || !password) {
+            return res.status(400).json({ message: 'Email and password are required' });
+        }
+
+        // Find the user by email in the database
         const user = await User.findOne({ email });
         if (!user) {
-            return res.status(400).json({ message: "Invalid email or password" });
+            return res.status(400).json({ message: 'Invalid email or password' });
         }
+
+        // Compare the provided password with the stored hash
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
-            return res.status(400).json({ message: "Invalid email or password" });
+            return res.status(400).json({ message: 'Invalid email or password' });
         }
-        const token = generateToken(user._id);
+
+        // jwt  
+        const token = jwt.sign(
+            { id: user._id, email: user.email, role: user.role },
+            process.env.JWT_SECRET, // Make sure this secret is set in your environment variables
+            { expiresIn: '10h' }
+        );
+
+        res.cookie('token', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
+            sameSite: 'strict',
+            maxAge: 36000000 // 1 hour in milliseconds
+        });
+
+        // Send response back with user information (excluding sensitive data)
         return res.status(200).json({
-            message: "User logged in successfully",
-            token,
+            message: 'Logged in successfully',
             user: {
-                id: user._id,
-                name: user.username, // using username as name
-                email: user.email,
-                eqScore: user.eqScore,
-                frontendScore: user.frontendScore,
-                backendScore: user.backendScore
+                id: user._id
             }
         });
     } catch (error) {
-        console.error("Login error:", error);
-        return res.status(500).json({ message: "Server error" });
+        console.error('Login error:', error);
+        return res.status(500).json({ message: 'Server error during login' });
     }
 };
+
 
 const logoutUser = async (req, res) => {
     return res.status(200).json({ message: 'Logged out successfully' });

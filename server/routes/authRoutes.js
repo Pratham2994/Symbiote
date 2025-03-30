@@ -27,6 +27,8 @@ router.post('/register', uploadMiddleware.single('resume'), registerUser);
 router.post('/login', loginUser);
 router.post('/logout', logoutUser);
 
+
+
 // Protected route
 
 module.exports = router;
