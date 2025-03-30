@@ -1,3 +1,4 @@
+// SignupSteps.jsx
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, X, FileText, Github, Link as LinkIcon } from 'lucide-react';
@@ -45,14 +46,34 @@ const EQ_QUESTIONS = [
   }
 ];
 
-const SignupSteps = ({ onComplete, loading }) => {
-  const [step, setStep] = useState(1); // 1: OTP, 2: Profile, 3: EQ
+const SKILLS = [
+  "JavaScript",
+  "Python",
+  "React",
+  "Node.js",
+  "CSS",
+  "HTML",
+  "MongoDB",
+  "Express",
+  "Java",
+  "C++",
+  "C#",
+  "SQL",
+  "TypeScript",
+  "Redux",
+  "Git"
+];
+
+const SignupSteps = ({ email, password, onClose }) => {
+  const [step, setStep] = useState(1);
   const [otp, setOtp] = useState('');
   const [profile, setProfile] = useState({
     resume: null,
     githubLink: '',
+    aboutMe: '',
     otherLinks: ['']
   });
+  const [selectedSkills, setSelectedSkills] = useState([]);
   const [eqAnswers, setEqAnswers] = useState({
     q1: null,
     q2: null,
@@ -60,6 +81,7 @@ const SignupSteps = ({ onComplete, loading }) => {
     q4: null
   });
   const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
 
   const validateOtp = () => {
     if (!otp || otp.length !== 6) {
@@ -71,19 +93,19 @@ const SignupSteps = ({ onComplete, loading }) => {
 
   const validateProfile = () => {
     const newErrors = {};
-    
     if (!profile.resume) {
       newErrors.resume = 'Resume is required (PDF format)';
     } else if (!profile.resume.type.includes('pdf')) {
       newErrors.resume = 'Please upload a PDF file';
     }
-
     if (!profile.githubLink) {
       newErrors.githubLink = 'GitHub link is required';
     } else if (!profile.githubLink.includes('github.com')) {
       newErrors.githubLink = 'Please enter a valid GitHub URL';
     }
-
+    if (selectedSkills.length === 0) {
+      newErrors.skills = 'Please select at least one skill';
+    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -129,13 +151,66 @@ const SignupSteps = ({ onComplete, loading }) => {
     }));
   };
 
+  const handleSkillClick = (skill) => {
+    setSelectedSkills(prev => {
+      if (prev.includes(skill)) {
+        return prev.filter(s => s !== skill);
+      } else {
+        return [...prev, skill];
+      }
+    });
+  };
+
+  // For steps 1 and 2, we simply validate and move on.
   const handleNext = () => {
-    if (step === 1 && validateOtp()) {
-      setStep(2);
-    } else if (step === 2 && validateProfile()) {
-      setStep(3);
-    } else if (step === 3 && validateEq()) {
-      onComplete({ otp, profile, eqAnswers });
+    if (step === 1) {
+      if (validateOtp()) {
+        setStep(2);
+        setErrors({});
+      }
+    } else if (step === 2) {
+      if (validateProfile()) {
+        setStep(3);
+        setErrors({});
+      }
+    }
+  };
+
+  // In step 3, the Submit button now calls handleRegister to actually perform registration.
+  const handleRegister = async () => {
+    if (!validateEq()) return;
+    setLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append('email', email);
+      formData.append('password', password);
+      formData.append('role', 'Student');
+      // For username, here we use the GitHub username as a placeholder:
+      const username = profile.githubLink.split('/').pop();
+      formData.append('username', username);
+      formData.append('githubLink', profile.githubLink);
+      formData.append('aboutMe', profile.aboutMe);
+      formData.append('skills', selectedSkills.join(', '));
+      formData.append('otherLinks', JSON.stringify(profile.otherLinks));
+      if (profile.resume) {
+        formData.append('resume', profile.resume);
+      }
+      formData.append('eqAnswers', JSON.stringify(eqAnswers));
+      // Send registration request to backend
+      const response = await fetch('http://localhost:5000/api/auth/register', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await response.json();
+      if (response.ok) {
+        onClose();
+      } else {
+        setErrors(prev => ({ ...prev, submit: data.message || 'Registration failed' }));
+      }
+    } catch (error) {
+      setErrors(prev => ({ ...prev, submit: 'Registration failed' }));
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -165,7 +240,7 @@ const SignupSteps = ({ onComplete, loading }) => {
       )}
 
       {step === 2 && (
-        <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
+        <div className="max-h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-venom-purple scrollbar-track-transparent space-y-4">
           <div>
             <label className="block text-sm font-medium mb-2">Resume (PDF)</label>
             <div className="flex items-center gap-3">
@@ -213,6 +288,42 @@ const SignupSteps = ({ onComplete, loading }) => {
             )}
           </div>
 
+          <div>
+            <label className="block text-sm font-medium mb-2">Select Your Skills</label>
+            <div className="flex flex-wrap gap-2">
+              {SKILLS.map(skill => (
+                <button
+                  type="button"
+                  key={skill}
+                  onClick={() => handleSkillClick(skill)}
+                  className={`px-3 py-1 rounded-full border transition-colors ${
+                    selectedSkills.includes(skill)
+                      ? 'bg-venom-purple text-white border-venom-purple'
+                      : 'bg-venom-purple/10 text-ghost-lilac border-venom-purple/20 hover:bg-venom-purple/20'
+                  }`}
+                >
+                  {skill}
+                </button>
+              ))}
+            </div>
+            {errors.skills && (
+              <p className="mt-1 text-sm text-red-500">{errors.skills}</p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">About Me</label>
+            <textarea
+              value={profile.aboutMe}
+              onChange={(e) => {
+                setProfile(prev => ({ ...prev, aboutMe: e.target.value }));
+              }}
+              className="w-full px-4 py-2 rounded-lg bg-symbiote-purple/20 border border-venom-purple/30 focus:border-venom-purple focus:outline-none focus:ring-2 focus:ring-venom-purple/20"
+              placeholder="Tell us about yourself"
+              disabled={loading}
+            ></textarea>
+          </div>
+
           <div className="space-y-3">
             <label className="block text-sm font-medium">Other Links (Optional)</label>
             {profile.otherLinks.map((link, index) => (
@@ -254,40 +365,42 @@ const SignupSteps = ({ onComplete, loading }) => {
       )}
 
       {step === 3 && (
-        <div className="space-y-6">
-          <div className="max-h-[400px] overflow-y-auto pr-2 space-y-6">
-            {EQ_QUESTIONS.map((q, qIndex) => (
-              <div key={qIndex} className="space-y-3">
-                <p className="font-medium">{q.question}</p>
-                <div className="grid gap-2">
-                  {q.options.map((option, oIndex) => (
-                    <button
-                      key={oIndex}
-                      type="button"
-                      onClick={() => setEqAnswers(prev => ({ ...prev, [`q${qIndex + 1}`]: oIndex + 1 }))}
-                      className={`p-3 text-left rounded-lg border ${
-                        eqAnswers[`q${qIndex + 1}`] === oIndex + 1
-                          ? 'bg-venom-purple border-venom-purple'
-                          : 'bg-symbiote-purple/20 border-venom-purple/30 hover:bg-symbiote-purple/30'
-                      } transition-colors`}
-                      disabled={loading}
-                    >
-                      {`${oIndex + 1}️⃣ ${option}`}
-                    </button>
-                  ))}
-                </div>
+        <div className="max-h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-venom-purple scrollbar-track-transparent space-y-6">
+          {EQ_QUESTIONS.map((q, qIndex) => (
+            <div key={qIndex} className="space-y-3">
+              <p className="font-medium">{q.question}</p>
+              <div className="grid gap-2">
+                {q.options.map((option, oIndex) => (
+                  <button
+                    key={oIndex}
+                    type="button"
+                    onClick={() => setEqAnswers(prev => ({ ...prev, [`q${qIndex + 1}`]: oIndex + 1 }))}
+                    className={`p-3 text-left rounded-lg border transition-colors ${
+                      eqAnswers[`q${qIndex + 1}`] === oIndex + 1
+                        ? 'bg-venom-purple text-white border-venom-purple'
+                        : 'bg-venom-purple/5 text-ghost-lilac border-venom-purple/20 hover:bg-venom-purple/10'
+                    }`}
+                    disabled={loading}
+                  >
+                    {`${oIndex + 1}. ${option}`}
+                  </button>
+                ))}
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
           {errors.eq && (
             <p className="text-sm text-red-500">{errors.eq}</p>
           )}
         </div>
       )}
 
+      {errors.submit && (
+        <p className="text-sm text-red-500 text-center">{errors.submit}</p>
+      )}
+
       <button
         type="button"
-        onClick={handleNext}
+        onClick={step === 3 ? handleRegister : handleNext}
         className="w-full py-3 bg-venom-purple rounded-lg font-semibold shadow-neon hover:shadow-lg hover:bg-venom-purple/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         disabled={loading}
       >
@@ -307,4 +420,4 @@ const SignupSteps = ({ onComplete, loading }) => {
   );
 };
 
-export default SignupSteps; 
+export default SignupSteps;

@@ -1,6 +1,5 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { cardHover } from '../utils/animations';
 import { features } from '../utils/data';
 
 const FeaturesSection = () => {
@@ -24,7 +23,11 @@ const FeaturesSection = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: index * 0.2 }}
-              whileHover={cardHover}
+              whileHover={{
+                scale: 1.05,
+                boxShadow: '0px 0px 20px rgba(167,68,195,0.7)',
+                transition: { duration: 0 }
+              }}
             >
               <feature.icon className="w-12 h-12 text-venom-purple mb-4" />
               <h3 className="text-xl font-semibold mb-3">{feature.title}</h3>

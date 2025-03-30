@@ -1,3 +1,4 @@
+// AuthModal.jsx
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { X, Eye, EyeOff } from 'lucide-react';
@@ -5,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import SignupSteps from './SignupSteps';
 
 const AuthModal = ({ type, onClose }) => {
-  const { login, signup, sendOtp, validateEmail, validatePassword, loading, error: authError } = useAuth();
+  const { login, validateEmail, validatePassword, loading, error: authError } = useAuth();
 
   const [formData, setFormData] = useState({
     email: '',
@@ -22,6 +23,7 @@ const AuthModal = ({ type, onClose }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showSignupSteps, setShowSignupSteps] = useState(false);
+  const [otpLoading, setOtpLoading] = useState(false);
 
   const toggleAuthType = () => {
     const newType = type === 'login' ? 'signup' : 'login';
@@ -65,12 +67,12 @@ const AuthModal = ({ type, onClose }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // Validate all fields
     const emailError = validateEmail(formData.email);
     const passwordError = validatePassword(formData.password);
     let confirmPasswordError = '';
-    
+
     if (type === 'signup') {
       confirmPasswordError = formData.password !== formData.confirmPassword ? 'Passwords do not match' : '';
     }
@@ -81,7 +83,6 @@ const AuthModal = ({ type, onClose }) => {
       confirmPassword: confirmPasswordError
     });
 
-    // If there are any errors, don't proceed
     if (emailError || passwordError || confirmPasswordError) {
       return;
     }
@@ -91,24 +92,24 @@ const AuthModal = ({ type, onClose }) => {
         await login(formData.email, formData.password);
         onClose();
       } else {
-        const success = await sendOtp(formData.email);
-        if (success) {
+        // For signup, send OTP directly using backend endpoint
+        setOtpLoading(true);
+        const response = await fetch('http://localhost:5000/api/auth/send-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: formData.email })
+        });
+        const data = await response.json();
+        if (response.ok) {
           setShowSignupSteps(true);
+        } else {
+          console.error('Error sending OTP:', data.message);
         }
       }
     } catch (error) {
       console.error('Auth error:', error);
-    }
-  };
-
-  const handleSignupComplete = async ({ otp, profile, eqAnswers }) => {
-    try {
-      // Will be implemented when backend is ready
-      // await signup(formData.email, formData.password, otp, profile, eqAnswers);
-      console.log('Signup data:', { email: formData.email, password: formData.password, otp, profile, eqAnswers });
-      onClose();
-    } catch (error) {
-      console.error('Signup error:', error);
+    } finally {
+      setOtpLoading(false);
     }
   };
 
@@ -146,7 +147,7 @@ const AuthModal = ({ type, onClose }) => {
         )}
 
         {type === 'signup' && showSignupSteps ? (
-          <SignupSteps onComplete={handleSignupComplete} loading={loading} />
+          <SignupSteps email={formData.email} password={formData.password} onClose={onClose} />
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -229,18 +230,32 @@ const AuthModal = ({ type, onClose }) => {
             <button
               type="submit"
               className="w-full py-3 bg-venom-purple rounded-lg font-semibold shadow-neon hover:shadow-lg hover:bg-venom-purple/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={loading}
+              disabled={type === 'signup' ? otpLoading : loading}
             >
-              {loading ? (
-                <span className="flex items-center justify-center">
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Processing...
-                </span>
+              {type === 'login' ? (
+                loading ? (
+                  <span className="flex items-center justify-center">
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Processing...
+                  </span>
+                ) : (
+                  'Log in'
+                )
               ) : (
-                type === 'login' ? 'Log in' : 'Send OTP'
+                otpLoading ? (
+                  <span className="flex items-center justify-center">
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Processing...
+                  </span>
+                ) : (
+                  'Send OTP'
+                )
               )}
             </button>
           </form>
