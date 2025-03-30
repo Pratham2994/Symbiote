@@ -206,29 +206,84 @@ def get_user_repos(username: str, num_repos: int = 20):
 
 def analyze_github(github_link):
     try:
-        # Remove trailing slash before extracting the username
-        username = github_link.rstrip('/').split('/')[-1]
+        username = extract_username(github_link)
+        user_data = get_user_repos(username, num_repos=50)
         
-        # Use the GitHub API token if provided
-        token = os.getenv('GITHUB_API_TOKEN')
-        headers = {"Authorization": f"Bearer {token}"} if token else {}
+        repos = user_data['repositories']['nodes']
+        contributions = user_data['contributionsCollection']['contributionCalendar']['totalContributions']
         
-        # Single API call to get user data
-        response = requests.get(f"https://api.github.com/users/{username}", headers=headers)
-        if response.status_code != 200:
-            return {"error": f"Failed to fetch GitHub data: {response.status_code} {response.text}"}
+        print("GitHub Analysis")
         
-        user_data = response.json()
+        frontend_points = 0.0
+        backend_points = 0.0
         
-        # Calculate scores based on user data
-        followers_score = min(user_data.get('followers', 0) / 100, 1)  # Normalize followers
-        public_repos_score = min(user_data.get('public_repos', 0) / 50, 1)  # Normalize public repos
+        for repo in repos:
+            repo_name = repo['name']
+            description = repo.get('description') or ""
+            all_languages = get_all_repo_languages(username, repo_name)
+            commit_count = 0
+            if repo.get('defaultBranchRef'):
+                commit_count = repo['defaultBranchRef']['target']['history']['totalCount']
+            
+            pushed_at_str = repo.get('pushedAt')
+            recency = datetime.strptime(pushed_at_str, '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc) if pushed_at_str else None
+            weight = recency_weight(recency) if recency else 0.5
+            
+            classification = classify_repo_with_package_json(all_languages, repo_name, description, username)
+            commit_points = commit_count * weight
+            
+            if classification == "Front End":
+                frontend_points += commit_points
+            elif classification == "Back End":
+                backend_points += commit_points
+            elif classification == "Full Stack":
+                frontend_points += commit_points * 0.5
+                backend_points += commit_points * 0.5
+            else:
+                for language in all_languages:
+                    lang_lower = language.lower()
+                    if lang_lower in FRONTEND_KEYWORDS:
+                        frontend_points += commit_points * 0.2
+                    if lang_lower in BACKEND_KEYWORDS:
+                        backend_points += commit_points * 0.2
+
+    
+            for language in all_languages:
+                if language.lower() in FRONTEND_KEYWORDS:
+                    frontend_points += 1
+                if language.lower() in BACKEND_KEYWORDS:
+                    backend_points += 1
         
-        # Calculate backend score (weighted average)
-        backend_score = (followers_score * 0.4 + public_repos_score * 0.6) * 100
+    
+        frontend_points += contributions * 0.02
+        backend_points += contributions * 0.02
         
-        # Calculate frontend score (weighted average)
-        frontend_score = (followers_score * 0.3 + public_repos_score * 0.7) * 100
+        frontend_score = min(frontend_points, 100)
+        backend_score = min(backend_points, 100)
+
+        # # Remove trailing slash before extracting the username
+        # username = github_link.rstrip('/').split('/')[-1]
+        
+        # # Use the GitHub API token if provided
+        # token = os.getenv('GITHUB_API_TOKEN')
+        # headers = {"Authorization": f"Bearer {token}"} if token else {}
+        
+        # # Single API call to get user data
+        # response = requests.get(f"https://api.github.com/users/{username}", headers=headers)
+        # if response.status_code != 200:
+        #     return {"error": f"Failed to fetch GitHub data: {response.status_code} {response.text}"}
+        
+        # user_data = response.json()
+        
+        # # Calculate scores based on user data
+        # followers_score = min(user_data.get('followers', 0) / 100, 1)  # Normalize followers
+        # public_repos_score = min(user_data.get('public_repos', 0) / 50, 1)  # Normalize public repos
+        
+        # # Calculate backend score (weighted average)
+        # backend_score = (followers_score * 0.4 + public_repos_score * 0.6) * 100
+        
+        # # Calculate frontend score (weighted average)
+        # frontend_score = (followers_score * 0.3 + public_repos_score * 0.7) * 100
         
         return {
             "backend_score": round(backend_score, 2),
