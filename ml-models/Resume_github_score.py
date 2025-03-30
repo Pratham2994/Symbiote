@@ -29,7 +29,7 @@ BACKEND_KEYWORDS = {
 }
 
 
-GITHUB_TOKEN = 'put your api token'  # Replace with your GitHub token
+GITHUB_TOKEN = '' 
 HEADERS = {"Authorization": f"Bearer {GITHUB_TOKEN}"}
 
 def extract_text_from_pdf(pdf_path):
@@ -280,7 +280,7 @@ def combined_analysis(resume_file: str, github_url: str, weight_github: int = 2,
 
 if __name__ == "__main__":
  
-    resume_file = "Resume_varnika.pdf"  
+    resume_file = "ml-models\Resume_varnika.pdf"  
     
     github_profile_url = "https://github.com/VarnikaBajpai4" 
     
