@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -56,3 +57,64 @@ Thumbs.db
 *.swp
 *.swo
 
+=======
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv/
+.env
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# Pyenv
+.python-version
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# mypy cache
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# IDE/Editor settings
+.vscode/
+.idea/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.swp
+*.swo
+
+>>>>>>> 0e544e53b2cabdbadc9a518f0dbfcb801b0a2f70
