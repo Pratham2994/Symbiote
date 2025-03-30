@@ -6,6 +6,7 @@ import string
 import base64
 import json
 import requests
+import math
 from collections import Counter
 from datetime import datetime, timezone
 from dotenv import load_dotenv
@@ -17,7 +18,7 @@ import docx
 load_dotenv()
 
 # Get GitHub token from environment variables
-GITHUB_TOKEN = os.getenv('GITHUB_API_TOKEN')
+GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
 HEADERS = {"Authorization": f"Bearer {GITHUB_TOKEN}"}
 
 FRONTEND_KEYWORDS = {
@@ -100,10 +101,18 @@ def analyze_resume(file_path):
     print("Backend keyword counts:", dict(backend_counts))
     print(f"Frontend score: {frontend_score}/100")
     print(f"Backend score: {backend_score}/100")
- 
     
     return {"frontend_score": frontend_score, "backend_score": backend_score}
 
+def normalize_score(raw_score, scale):
+    """
+    Logarithmically normalize raw_score to a value between 0 and 100.
+    If raw_score equals the scale, the result will be 100.
+    Scores above the scale will be gradually compressed.
+    """
+    # Adding 1 to avoid math domain error when raw_score is 0.
+    normalized = 100 * math.log(raw_score + 1) / math.log(scale + 1)
+    return min(normalized, 100)
 
 def extract_username(github_url: str) -> str:
     match = re.search(r"github\.com/([^/]+)", github_url)
@@ -121,26 +130,8 @@ def get_all_repo_languages(owner: str, repo: str) -> list:
         print(f"Error fetching languages for {repo}: {response.status_code}")
         return []
 
-def get_package_json(owner: str, repo: str) -> dict:
-    url = f"https://api.github.com/repos/{owner}/{repo}/contents/package.json"
-    response = requests.get(url, headers=HEADERS)
-    if response.status_code == 200:
-        content = response.json().get('content')
-        if content:
-            try:
-                decoded = base64.b64decode(content).decode('utf-8')
-                return json.loads(decoded)
-            except Exception as e:
-                print(f"Error parsing package.json for {repo}: {e}")
-    return {}
-
 def classify_repo_with_package_json(languages: list, repo_name: str = "", repo_description: str = "", owner: str = "") -> str:
-    package_data = get_package_json(owner, repo_name)
-    dependencies = package_data.get("dependencies", {})
-    dev_dependencies = package_data.get("devDependencies", {})
-    
-    dependency_keys = list(dependencies.keys()) + list(dev_dependencies.keys())
-    combined_text = " ".join(languages + [repo_name, repo_description] + dependency_keys).lower()
+    combined_text = " ".join(languages + [repo_name, repo_description]).lower()
 
     has_frontend = any(kw in combined_text for kw in FRONTEND_KEYWORDS)
     has_backend = any(kw in combined_text for kw in BACKEND_KEYWORDS)
@@ -196,6 +187,7 @@ def get_user_repos(username: str, num_repos: int = 20):
     response = requests.post('https://api.github.com/graphql',
                            headers=HEADERS,
                            json={'query': query, 'variables': variables})
+    
     if response.status_code == 200:
         return response.json()['data']['user']
     else:
@@ -249,13 +241,28 @@ def analyze_github(github_link):
                     frontend_points += 1
                 if language.lower() in BACKEND_KEYWORDS:
                     backend_points += 1
+
+
+        response = requests.get(f"https://api.github.com/users/{username}", headers=HEADERS)
+        if response.status_code != 200:
+             return {"error": f"Failed to fetch GitHub data: {response.status_code} {response.text}"}
+        
+        user_data = response.json()
+
+        # Calculate scores based on user data
+        followers_score = min(user_data.get('followers', 0) / 100, 1)  # Normalize followers
+        public_repos_score = min(user_data.get('public_repos', 0) / 50, 1)  # Normalize public repos
         
         frontend_points += contributions * 0.02
         backend_points += contributions * 0.02
-        
-        frontend_score = min(frontend_points, 100)
-        backend_score = min(backend_points, 100)
 
+        frontend_points += (followers_score * 0.3 + public_repos_score * 0.7)
+        backend_points += (followers_score * 0.4 + public_repos_score * 0.6)
+        
+        GITHUB_SCALE = 5000  
+        frontend_score = normalize_score(frontend_points, GITHUB_SCALE)
+        backend_score = normalize_score(backend_points, GITHUB_SCALE)
+        
         return {
             "backend_score": round(backend_score, 2),
             "frontend_score": round(frontend_score, 2),
@@ -281,3 +288,8 @@ def combined_analysis(resume_file: str, github_url: str, weight_github: int = 2,
     print(f"Combined Backend Score: {final_backend:.1f}/100")
   
     return {"final_frontend": final_frontend, "final_backend": final_backend}
+
+# Debug
+if __name__ == "__main__":
+    scores = combined_analysis("C:/Users/makwa/VS-code/web_dev/symbiote/ml-models/Resume_varnika.pdf", "https://github.com/CLONER786")
+    print(scores)
