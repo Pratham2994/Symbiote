@@ -4,6 +4,19 @@ const bcrypt = require('bcryptjs');
 const axios = require('axios');
 const FormData = require('form-data');
 const multer = require('multer');
+const nodemailer = require('nodemailer');
+
+// Configure nodemailer
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASSWORD
+    }
+});
+
+// Store OTPs temporarily (in production, use Redis or similar)
+const otpStore = new Map();
 
 // Configure multer for memory storage
 const storage = multer.memoryStorage();
@@ -183,25 +196,6 @@ const registerUser = async (req, res) => {
                     backendScore: newUser.backendScore
                 }
             });
-        } else if (role === 'Admin') {
-            const salt = await bcrypt.genSalt(10);
-            const hashedPassword = await bcrypt.hash(password, salt);
-            const newUser = await User.create({
-                email,
-                password: hashedPassword,
-                role: 'Admin'
-            });
-
-            const token = generateToken(newUser._id);
-            return res.status(201).json({
-                message: 'Admin registered successfully',
-                token,
-                user: {
-                    id: newUser._id,
-                    email: newUser.email,
-                    role: newUser.role
-                }
-            });
         } else {
             return res.status(400).json({ message: 'Invalid role' });
         }
@@ -245,9 +239,97 @@ const logoutUser = async (req, res) => {
     return res.status(200).json({ message: 'Logged out successfully' });
 };
 
+const sendOTP = async (req, res) => {
+    try {
+        const { email } = req.body;
+        
+        // Validate email
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({ message: 'Invalid email format' });
+        }
+
+        // Generate 6-digit OTP
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        
+        // Store OTP with 5 minutes expiry
+        otpStore.set(email, {
+            otp,
+            expiry: Date.now() + 5 * 60 * 1000 // 5 minutes
+        });
+
+        // Send email
+        const mailOptions = {
+            from: process.env.EMAIL_USER,
+            to: email,
+            subject: 'Your OTP for Symbiote Registration',
+            html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <h2 style="color: #6B46C1;">Your OTP for Registration</h2>
+                    <p>Hello,</p>
+                    <p>Your OTP for registration is: <strong style="color: #6B46C1; font-size: 24px;">${otp}</strong></p>
+                    <p>This OTP will expire in 5 minutes.</p>
+                    <p>If you didn't request this OTP, please ignore this email.</p>
+                </div>
+            `
+        };
+
+        await transporter.sendMail(mailOptions);
+        
+        return res.status(200).json({ 
+            message: 'OTP sent successfully',
+            email: email
+        });
+    } catch (error) {
+        console.error('Error sending OTP:', error);
+        return res.status(500).json({ message: 'Failed to send OTP' });
+    }
+};
+
+const verifyOTP = async (req, res) => {
+    try {
+        const { email, otp } = req.body;
+
+        // Validate email and OTP
+        if (!email || !otp) {
+            return res.status(400).json({ message: 'Email and OTP are required' });
+        }
+
+        // Check if OTP exists and is valid
+        const storedData = otpStore.get(email);
+        if (!storedData) {
+            return res.status(400).json({ message: 'No OTP found for this email' });
+        }
+
+        // Check if OTP has expired
+        if (Date.now() > storedData.expiry) {
+            otpStore.delete(email);
+            return res.status(400).json({ message: 'OTP has expired' });
+        }
+
+        // Verify OTP
+        if (storedData.otp !== otp) {
+            return res.status(400).json({ message: 'Invalid OTP' });
+        }
+
+        // Clear OTP after successful verification
+        otpStore.delete(email);
+
+        return res.status(200).json({ 
+            message: 'OTP verified successfully',
+            email: email
+        });
+    } catch (error) {
+        console.error('Error verifying OTP:', error);
+        return res.status(500).json({ message: 'Failed to verify OTP' });
+    }
+};
+
 module.exports = {
     registerUser,
     loginUser,
     logoutUser,
-    upload
+    upload,
+    sendOTP,
+    verifyOTP
 };
