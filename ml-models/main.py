@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException, Form
+from fastapi import FastAPI, UploadFile, File, HTTPException, Form, Body
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import os
@@ -6,11 +6,68 @@ import json
 from dotenv import load_dotenv
 from Resume_github_score import analyze_resume, analyze_github
 from Eq_score import calculate_eq_score
+from match_score import MatchScoreCalculator
 
 # Load environment variables
 load_dotenv()
 
 app = FastAPI()
+
+
+# Initialize the calculator once as a global variable
+match_calculator = MatchScoreCalculator()
+
+@app.post("/calculate-match")
+async def calculate_match(
+    candidate1_scores: dict = Body(
+        ...,
+        example={
+            "frontend": 90,
+            "backend": 20,
+            "eq": 50
+        },
+        description="First candidate's scores"
+    ),
+    candidate2_scores: dict = Body(
+        ...,
+        example={
+            "frontend": 20,
+            "backend": 90,
+            "eq": 50
+        },
+        description="Second candidate's scores"
+    ),
+    weights: dict = Body(
+        None,
+        example={
+            "frontend": 0.375,
+            "backend": 0.375,
+            "eq": 0.25
+        },
+        description="Optional custom weights for each parameter"
+    )
+):
+    try:
+        # Create a new calculator with custom weights if provided
+        calculator = MatchScoreCalculator(weights) if weights else match_calculator
+        
+        # Calculate the match score
+        match_score = calculator.calculate_combined_score(
+            candidate1_scores,
+            candidate2_scores
+        )
+        
+        return {
+            "match_score": match_score,
+            "candidate1_scores": candidate1_scores,
+            "candidate2_scores": candidate2_scores,
+            "weights_used": calculator.weights
+        }
+
+    except Exception as e:
+        print(f"Error in calculate_match: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 app.add_middleware(
     CORSMiddleware,
