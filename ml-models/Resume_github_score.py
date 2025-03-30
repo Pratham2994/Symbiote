@@ -1,6 +1,5 @@
 #pip install PyPDF2 python-docx requests numpy
 
-
 import os
 import re
 import string
@@ -13,7 +12,6 @@ from dotenv import load_dotenv
 
 import PyPDF2
 import docx
-
 
 # Load environment variables
 load_dotenv()
@@ -79,14 +77,13 @@ def count_keywords(text, keywords):
     matches = re.findall(pattern, text)
     return Counter(matches)
 
-def calculate_score(keyword_counter, scale_factor=2):
+def calculate_score(keyword_counter, max_possible=50):
     """
-    A scoring function that multiplies the total frequency by a lower scale factor.
-    With a scale_factor of 2, more keyword matches are needed to reach 100.
+    Percentile-normalized scoring based on max_possible keyword matches.
     """
-    raw_score = sum(keyword_counter.values()) * scale_factor
-    return min(raw_score, 100)
-
+    raw_score = sum(keyword_counter.values())
+    scaled_score = min((raw_score / max_possible) * 100, 100)
+    return scaled_score
 
 def analyze_resume(file_path):
     text = extract_text(file_path)
@@ -95,8 +92,8 @@ def analyze_resume(file_path):
     frontend_counts = count_keywords(processed_text, FRONTEND_KEYWORDS)
     backend_counts = count_keywords(processed_text, BACKEND_KEYWORDS)
     
-    frontend_score = calculate_score(frontend_counts, scale_factor=2)
-    backend_score = calculate_score(backend_counts, scale_factor=2)
+    frontend_score = calculate_score(frontend_counts)
+    backend_score = calculate_score(backend_counts)
     
     print("Resume Analysis")
     print("Frontend keyword counts:", dict(frontend_counts))
@@ -207,7 +204,7 @@ def get_user_repos(username: str, num_repos: int = 20):
 def analyze_github(github_link):
     try:
         username = extract_username(github_link)
-        user_data = get_user_repos(username, num_repos=50)
+        user_data = get_user_repos(username, num_repos=5)
         
         repos = user_data['repositories']['nodes']
         contributions = user_data['contributionsCollection']['contributionCalendar']['totalContributions']
@@ -247,44 +244,18 @@ def analyze_github(github_link):
                     if lang_lower in BACKEND_KEYWORDS:
                         backend_points += commit_points * 0.2
 
-    
             for language in all_languages:
                 if language.lower() in FRONTEND_KEYWORDS:
                     frontend_points += 1
                 if language.lower() in BACKEND_KEYWORDS:
                     backend_points += 1
         
-    
         frontend_points += contributions * 0.02
         backend_points += contributions * 0.02
         
         frontend_score = min(frontend_points, 100)
         backend_score = min(backend_points, 100)
 
-        # # Remove trailing slash before extracting the username
-        # username = github_link.rstrip('/').split('/')[-1]
-        
-        # # Use the GitHub API token if provided
-        # token = os.getenv('GITHUB_API_TOKEN')
-        # headers = {"Authorization": f"Bearer {token}"} if token else {}
-        
-        # # Single API call to get user data
-        # response = requests.get(f"https://api.github.com/users/{username}", headers=headers)
-        # if response.status_code != 200:
-        #     return {"error": f"Failed to fetch GitHub data: {response.status_code} {response.text}"}
-        
-        # user_data = response.json()
-        
-        # # Calculate scores based on user data
-        # followers_score = min(user_data.get('followers', 0) / 100, 1)  # Normalize followers
-        # public_repos_score = min(user_data.get('public_repos', 0) / 50, 1)  # Normalize public repos
-        
-        # # Calculate backend score (weighted average)
-        # backend_score = (followers_score * 0.4 + public_repos_score * 0.6) * 100
-        
-        # # Calculate frontend score (weighted average)
-        # frontend_score = (followers_score * 0.3 + public_repos_score * 0.7) * 100
-        
         return {
             "backend_score": round(backend_score, 2),
             "frontend_score": round(frontend_score, 2),
@@ -309,7 +280,4 @@ def combined_analysis(resume_file: str, github_url: str, weight_github: int = 2,
     print(f"Combined Frontend Score: {final_frontend:.1f}/100")
     print(f"Combined Backend Score: {final_backend:.1f}/100")
   
-    
     return {"final_frontend": final_frontend, "final_backend": final_backend}
-
-
