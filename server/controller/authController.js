@@ -78,6 +78,7 @@ const evaluateCandidate = async (resumeBuffer, githubLink, eqAnswers) => {
             }
         });
 
+
         // Map the response to match our expected format
         return {
             frontendScore: response.data.final_frontend,
