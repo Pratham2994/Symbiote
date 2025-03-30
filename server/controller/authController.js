@@ -98,7 +98,7 @@ const registerUser = async (req, res) => {
         if (!email || !password) {
             return res.status(400).json({ message: 'Email and password are required' });
         }
-        
+
         const emailRegex = /^[^\s@]+@somaiya\.edu$/;
         if (!emailRegex.test(email)) {
             return res.status(400).json({ message: 'Invalid email format' });
@@ -209,20 +209,26 @@ const registerUser = async (req, res) => {
 
 const loginUser = async (req, res) => {
     try {
-        // ensure email and password    
         const { email, password } = req.body;
+
         if (!email || !password) {
             return res.status(400).json({ message: 'Email and password are required' });
         }
 
         // Find the user by email in the database
         const user = await User.findOne({ email });
+       
+
         if (!user) {
             return res.status(400).json({ message: 'Invalid email or password' });
         }
 
+ 
+
         // Compare the provided password with the stored hash
         const isMatch = await bcrypt.compare(password, user.password);
+    
+
         if (!isMatch) {
             return res.status(400).json({ message: 'Invalid email or password' });
         }
@@ -230,18 +236,17 @@ const loginUser = async (req, res) => {
         // jwt  
         const token = jwt.sign(
             { id: user._id, email: user.email, role: user.role },
-            process.env.JWT_SECRET, // Make sure this secret is set in your environment variables
+            process.env.JWT_SECRET,
             { expiresIn: '10h' }
         );
 
         res.cookie('token', token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
+            secure: process.env.NODE_ENV === 'production',
             sameSite: 'strict',
-            maxAge: 36000000 // 1 hour in milliseconds
+            maxAge: 36000000
         });
 
-        // Send response back with user information (excluding sensitive data)
         return res.status(200).json({
             message: 'Logged in successfully',
             user: {

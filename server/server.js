@@ -11,13 +11,20 @@ const PORT = process.env.PORT || 5000;
 
 // Middlewares
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));  // Added middleware to parse URL-encoded bodies
+app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(cors({
   origin: ['http://localhost:3000', 'http://localhost:5173'],
   credentials: true
 }));
 
+// Add better error handling for parsing errors
+app.use((err, req, res, next) => {
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    return res.status(400).json({ message: 'Bad request format' });
+  }
+  next();
+});
 
 // Connect MongoDB
 connectDB();
