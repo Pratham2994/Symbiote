@@ -10,6 +10,7 @@ class MatchScoreCalculator:
         }
         self.lambda_constant = lambda_constant
         self.parameters = ["frontend", "backend", "eq"]
+        self.mismatch_penalty = 0
 
     def calculate_combined_score(self, person_a_dict, person_b_dict):
         """
@@ -34,6 +35,8 @@ class MatchScoreCalculator:
                 person_a[i] + person_b[i]
             ))
         
+        self.mismatch_penalty = self._calculate_mismatch_penalty(person_a_dict, person_b_dict)
+
         return self._calculate_weighted_score(combined_scores)
 
     def _calculate_weighted_score(self, combined_scores):
@@ -71,5 +74,29 @@ class MatchScoreCalculator:
     def _calculate_final_score(self, penalty, weighted_scores):
         _, values = zip(*weighted_scores)
         sum_weighted_score = sum(values)
-        return sum_weighted_score - penalty
+
+        # print(self.mismatch_penalty)
+        # print(sum_weighted_score, penalty)
+
+        return sum_weighted_score - penalty - self.mismatch_penalty
+    
+    def _calculate_mismatch_penalty(self, person_a_dict, person_b_dict):
+        mismatch_penalty = 0
+        values_person_a = list(person_a_dict.values())
+        values_person_b = list(person_b_dict.values())
+
+        for i in range(3):
+            mismatch_penalty += abs(values_person_a[i] - values_person_b[i])
+
+        return self.lambda_constant * mismatch_penalty
+    
+
+# if __name__ == "__main__":
+#     personA = {"frontend": 30, "backend": 25, "eq": 35}
+#     personB = {"frontend": 50, "backend": 55, "eq": 60}
+
+#     calculator = MatchScoreCalculator()
+#     final_score = calculator.calculate_combined_score(personA, personB)
+#     print("Final Match Score:", final_score)
+
 
