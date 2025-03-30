@@ -9,10 +9,18 @@ import json
 import requests
 from collections import Counter
 from datetime import datetime, timezone
+from dotenv import load_dotenv
 
 import PyPDF2
 import docx
 
+
+# Load environment variables
+load_dotenv()
+
+# Get GitHub token from environment variables
+GITHUB_TOKEN = os.getenv('GITHUB_API_TOKEN')
+HEADERS = {"Authorization": f"Bearer {GITHUB_TOKEN}"}
 
 FRONTEND_KEYWORDS = {
     "html", "css", "javascript", "react", "angular", "vue", "jquery", "bootstrap",
@@ -27,10 +35,6 @@ BACKEND_KEYWORDS = {
     "ci", "cd", "jenkins", "aws", "azure", "gcp", "backend", "server", "api",
     "python"  
 }
-
-
-GITHUB_TOKEN = 'put your api token'  # Replace with your GitHub token
-HEADERS = {"Authorization": f"Bearer {GITHUB_TOKEN}"}
 
 def extract_text_from_pdf(pdf_path):
     text = ""
@@ -193,79 +197,55 @@ def get_user_repos(username: str, num_repos: int = 20):
     """
     variables = {"username": username, "num_repos": num_repos}
     response = requests.post('https://api.github.com/graphql',
-                             json={'query': query, 'variables': variables})
+                           headers=HEADERS,
+                           json={'query': query, 'variables': variables})
     if response.status_code == 200:
         return response.json()['data']['user']
     else:
         raise Exception(f"GitHub query failed with code {response.status_code}: {response.text}")
 
-def analyze_github_profile(github_url: str):
-    username = extract_username(github_url)
-    user_data = get_user_repos(username, num_repos=50)
-    
-    repos = user_data['repositories']['nodes']
-    contributions = user_data['contributionsCollection']['contributionCalendar']['totalContributions']
-    
-    print("GitHub Analysis")
-    
-    frontend_points = 0.0
-    backend_points = 0.0
-    
-    for repo in repos:
-        repo_name = repo['name']
-        description = repo.get('description') or ""
-        all_languages = get_all_repo_languages(username, repo_name)
-        commit_count = 0
-        if repo.get('defaultBranchRef'):
-            commit_count = repo['defaultBranchRef']['target']['history']['totalCount']
+def analyze_github(github_link):
+    try:
+        # Remove trailing slash before extracting the username
+        username = github_link.rstrip('/').split('/')[-1]
         
-        pushed_at_str = repo.get('pushedAt')
-        recency = datetime.strptime(pushed_at_str, '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc) if pushed_at_str else None
-        weight = recency_weight(recency) if recency else 0.5
+        # Use the GitHub API token if provided
+        token = os.getenv('GITHUB_API_TOKEN')
+        headers = {"Authorization": f"Bearer {token}"} if token else {}
         
-        classification = classify_repo_with_package_json(all_languages, repo_name, description, username)
-        commit_points = commit_count * weight
+        # Single API call to get user data
+        response = requests.get(f"https://api.github.com/users/{username}", headers=headers)
+        if response.status_code != 200:
+            return {"error": f"Failed to fetch GitHub data: {response.status_code} {response.text}"}
         
-        if classification == "Front End":
-            frontend_points += commit_points
-        elif classification == "Back End":
-            backend_points += commit_points
-        elif classification == "Full Stack":
-            frontend_points += commit_points * 0.5
-            backend_points += commit_points * 0.5
-        else:
-            for language in all_languages:
-                lang_lower = language.lower()
-                if lang_lower in FRONTEND_KEYWORDS:
-                    frontend_points += commit_points * 0.2
-                if lang_lower in BACKEND_KEYWORDS:
-                    backend_points += commit_points * 0.2
-
-   
-        for language in all_languages:
-            if language.lower() in FRONTEND_KEYWORDS:
-                frontend_points += 1
-            if language.lower() in BACKEND_KEYWORDS:
-                backend_points += 1
-    
-   
-    frontend_points += contributions * 0.02
-    backend_points += contributions * 0.02
-    
-    github_frontend_score = min(frontend_points, 100)
-    github_backend_score = min(backend_points, 100)
-    
-    print(f"\nFinal GitHub Scores:")
-    print(f"  Frontend Score: {github_frontend_score:.1f}/100")
-    print(f"  Backend Score: {github_backend_score:.1f}/100")
- 
-    
-    return {"frontend_score": github_frontend_score, "backend_score": github_backend_score}
-
+        user_data = response.json()
+        
+        # Calculate scores based on user data
+        followers_score = min(user_data.get('followers', 0) / 100, 1)  # Normalize followers
+        public_repos_score = min(user_data.get('public_repos', 0) / 50, 1)  # Normalize public repos
+        
+        # Calculate backend score (weighted average)
+        backend_score = (followers_score * 0.4 + public_repos_score * 0.6) * 100
+        
+        # Calculate frontend score (weighted average)
+        frontend_score = (followers_score * 0.3 + public_repos_score * 0.7) * 100
+        
+        return {
+            "backend_score": round(backend_score, 2),
+            "frontend_score": round(frontend_score, 2),
+            "followers": user_data.get('followers', 0),
+            "public_repos": user_data.get('public_repos', 0),
+            "bio": user_data.get('bio', ''),
+            "location": user_data.get('location', ''),
+            "company": user_data.get('company', '')
+        }
+        
+    except Exception as e:
+        return {"error": str(e)}
 
 def combined_analysis(resume_file: str, github_url: str, weight_github: int = 2, weight_resume: int = 1):
     resume_results = analyze_resume(resume_file)
-    github_results = analyze_github_profile(github_url)
+    github_results = analyze_github(github_url)
     
     final_frontend = (github_results["frontend_score"] * weight_github + resume_results["frontend_score"] * weight_resume) / (weight_github + weight_resume)
     final_backend = (github_results["backend_score"] * weight_github + resume_results["backend_score"] * weight_resume) / (weight_github + weight_resume)

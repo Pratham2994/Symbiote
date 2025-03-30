@@ -165,7 +165,7 @@ const SignupSteps = ({ onComplete, loading }) => {
       )}
 
       {step === 2 && (
-        <div className="space-y-4">
+        <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
           <div>
             <label className="block text-sm font-medium mb-2">Resume (PDF)</label>
             <div className="flex items-center gap-3">
@@ -255,28 +255,30 @@ const SignupSteps = ({ onComplete, loading }) => {
 
       {step === 3 && (
         <div className="space-y-6">
-          {EQ_QUESTIONS.map((q, qIndex) => (
-            <div key={qIndex} className="space-y-3">
-              <p className="font-medium">{q.question}</p>
-              <div className="grid gap-2">
-                {q.options.map((option, oIndex) => (
-                  <button
-                    key={oIndex}
-                    type="button"
-                    onClick={() => setEqAnswers(prev => ({ ...prev, [`q${qIndex + 1}`]: oIndex + 1 }))}
-                    className={`p-3 text-left rounded-lg border ${
-                      eqAnswers[`q${qIndex + 1}`] === oIndex + 1
-                        ? 'bg-venom-purple border-venom-purple'
-                        : 'bg-symbiote-purple/20 border-venom-purple/30 hover:bg-symbiote-purple/30'
-                    } transition-colors`}
-                    disabled={loading}
-                  >
-                    {`${oIndex + 1}️⃣ ${option}`}
-                  </button>
-                ))}
+          <div className="max-h-[400px] overflow-y-auto pr-2 space-y-6">
+            {EQ_QUESTIONS.map((q, qIndex) => (
+              <div key={qIndex} className="space-y-3">
+                <p className="font-medium">{q.question}</p>
+                <div className="grid gap-2">
+                  {q.options.map((option, oIndex) => (
+                    <button
+                      key={oIndex}
+                      type="button"
+                      onClick={() => setEqAnswers(prev => ({ ...prev, [`q${qIndex + 1}`]: oIndex + 1 }))}
+                      className={`p-3 text-left rounded-lg border ${
+                        eqAnswers[`q${qIndex + 1}`] === oIndex + 1
+                          ? 'bg-venom-purple border-venom-purple'
+                          : 'bg-symbiote-purple/20 border-venom-purple/30 hover:bg-symbiote-purple/30'
+                      } transition-colors`}
+                      disabled={loading}
+                    >
+                      {`${oIndex + 1}️⃣ ${option}`}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
           {errors.eq && (
             <p className="text-sm text-red-500">{errors.eq}</p>
           )}
