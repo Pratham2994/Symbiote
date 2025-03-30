@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
-  name: { type: String, required: true },
+  username: { type: String },
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   role: { type: String, enum: ['Student', 'Admin'], default: 'Student' },
@@ -9,22 +9,26 @@ const userSchema = new mongoose.Schema({
   // Profile and about section
   aboutMe: { type: String, maxlength: 500 },
   
-  // GitHub URL is compulsory
-  github: { type: String},
+  // GitHub URL
+  githubLink: { type: String },
   
   // Optional additional social links (array of URLs)
   socialLinks: [{ type: String }],
   
   // Skills & resume
-  skills: { type: [String], default: [] },
+  skills: { type: String }, // JSON string of skills
+  resumePath: { type: String },
+  
+  // EQ questionnaire answers
+  eqAnswers: {
+    type: Map,
+    of: Number
+  },
   
   // Scores returned by ML model
-  frontendScore: Number,
-  backendScore: Number,
-  eqScore: Number,
-  
-  // Friend system: list of friend user IDs
-  // friends: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
+  frontendScore: { type: Number },
+  backendScore: { type: Number },
+  eqScore: { type: Number }
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);

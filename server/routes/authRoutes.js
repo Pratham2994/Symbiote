@@ -4,15 +4,24 @@ const {
   registerUser,
   loginUser,
   verifyToken,
-  logoutUser
-} = require('../controllers/authController');
-const { protect } = require('../middleware/authMiddleware');
+  logoutUser,
+  upload
+} = require('../controller/authController');
 
-router.post('/register', registerUser);
+const multer = require('multer');
+
+// Configure multer for memory storage
+const storage = multer.memoryStorage();
+const uploadMiddleware = multer({ storage });
+
+// Use the upload middleware on the /register route for handling the resume PDF.
+// The field name 'resume' must match the key in Postman when sending the file.
+router.post('/register', uploadMiddleware.single('resume'), registerUser);
+
 router.post('/login', loginUser);
 router.post('/logout', logoutUser);
 
 // Protected route
-router.get('/verify', protect, verifyToken);
+
 
 module.exports = router;

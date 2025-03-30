@@ -11,6 +11,7 @@ const PORT = process.env.PORT || 5000;
 
 // Middlewares
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));  // Added middleware to parse URL-encoded bodies
 app.use(cookieParser());
 app.use(cors({
   origin: 'http://localhost:3000',

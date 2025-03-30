@@ -258,10 +258,3 @@ def combined_analysis(resume_file: str, github_url: str, weight_github: int = 2,
     return {"final_frontend": final_frontend, "final_backend": final_backend}
 
 
-if __name__ == "__main__":
- 
-    resume_file = "ml-models\Resume_varnika.pdf"  
-    
-    github_profile_url = "https://github.com/VarnikaBajpai4" 
-    
-    combined_analysis(resume_file, github_profile_url)

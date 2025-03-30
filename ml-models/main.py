@@ -26,7 +26,7 @@ async def analyze_candidate(
     github_link: str = Form(None, example="https://github.com/example", description="GitHub profile link"),
     eq_answers: str = Form(
         None,
-        example='{ "q1": 3, "q2": 2, "q3": 4, "q4": 1 }',
+        example='{ "Q1": 3, "Q2": 2, "Q3": 4, "Q4": 1 }',
         description="JSON string with EQ answers"
     )
 ):
@@ -57,15 +57,20 @@ async def analyze_candidate(
         if eq_answers:
             try:
                 eq_dict = json.loads(eq_answers)
+                # Ensure all keys are in the correct format (Q1, Q2, Q3, Q4)
+                formatted_eq_dict = {}
+                for key, value in eq_dict.items():
+                    formatted_key = key if key.startswith('Q') else f"Q{key.replace('q', '')}"
+                    formatted_eq_dict[formatted_key] = value
+                
+                # calculate_eq_score returns a tuple: (breakdown, final_score)
+                _, final_eq_score = calculate_eq_score(formatted_eq_dict)
+                print(f"Processed EQ answers: {formatted_eq_dict}")
+                print(f"Calculated EQ score: {final_eq_score}")
             except Exception as e:
-                raise HTTPException(status_code=400, detail="Invalid JSON in eq_answers")
-            # calculate_eq_score returns a tuple: (breakdown, final_score)
-            _, final_eq_score = calculate_eq_score({
-                "Q1": eq_dict.get("q1"),
-                "Q2": eq_dict.get("q2"),
-                "Q3": eq_dict.get("q3"),
-                "Q4": eq_dict.get("q4")
-            })
+                print(f"Error processing EQ answers: {e}")
+                print(f"Raw EQ answers: {eq_answers}")
+                final_eq_score = None
 
         # Clean up temporary resume file
         os.remove(temp_resume_path)
@@ -89,8 +94,9 @@ async def analyze_candidate(
         return response
 
     except Exception as e:
+        print(f"Error in analyze_candidate: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
-if __name__ == "__main__":
+if __name__ == "_main_":
     uvicorn.run(app, host="0.0.0.0", port=8000)
