@@ -10,7 +10,7 @@ const {
   verifyOTP
 } = require('../controller/authController');
 
-const { protect } = require('../middleware/authMiddleware');
+const { protect } = require('../middleware/authMiddlewareStudent');
 
 const multer = require('multer');
 

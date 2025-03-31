@@ -34,9 +34,6 @@ const upload = multer({
     }
 });
 
-const generateToken = (id) => {
-    return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-};
 
 const evaluateCandidate = async (resumeBuffer, githubLink, eqAnswers) => {
     try {
@@ -271,8 +268,14 @@ const verifyToken = async (req, res) => {
 };
 
 const logoutUser = async (req, res) => {
-    return res.status(200).json({ message: 'Logged out successfully' });
-};
+    try {
+      res.clearCookie('token');
+      return res.status(200).json({ message: 'Logged out successfully' });
+    } catch (error) {
+      console.error("Error logging out user:", error);
+      return res.status(500).json({ message: 'Internal server error' });
+    }
+  };
 
 const sendOTP = async (req, res) => {
     try {
