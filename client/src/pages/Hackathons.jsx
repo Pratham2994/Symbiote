@@ -94,7 +94,7 @@ export default function Hackathons() {
         return [...comps].sort((a, b) => {
             switch (sortBy) {
                 case "date":
-                    return new Date(a.competitionStartDate) - new Date(b.competitionStartDate);
+                    return new Date(a.competitionStartDate) ;
                 case "prize":
                     const aAmount = a.prize ? parseInt(a.prize.replace(/[^0-9]/g, "")) : 0;
                     const bAmount = b.prize ? parseInt(b.prize.replace(/[^0-9]/g, "")) : 0;
@@ -102,7 +102,7 @@ export default function Hackathons() {
                 case "teams":
                     return (b.registeredTeams?.length || 0) - (a.registeredTeams?.length || 0);
                 case "deadline":
-                    return new Date(a.registrationDeadline) - new Date(b.registrationDeadline);
+                    return new Date(a.registrationDeadline) ;
                 default:
                     return 0;
             }
