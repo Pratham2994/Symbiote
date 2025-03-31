@@ -5,6 +5,7 @@ const cookieParser = require('cookie-parser');
 const connectDB = require('./config/config');
 const authRoutes = require('./routes/authRoutes');
 const competitionRoutes = require('./routes/competitionRoutes');
+const teamRoutes = require('./routes/teamRoutes');
 const path = require('path');
 
 
@@ -33,6 +34,7 @@ app.use((err, req, res, next) => {
 });
 
 app.use('/api/competitions', competitionRoutes);
+app.use('/api/teams', teamRoutes);
 // Connect MongoDB
 connectDB();
 

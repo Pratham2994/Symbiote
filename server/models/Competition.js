@@ -12,9 +12,11 @@ const competitionSchema = new mongoose.Schema({
     competitionEndDate: { type: Date },
     timing: { type: String },
     registrationLink: { type: String },
+    maxTeamSize: { type: Number, default: 4 },
     prize: { type: String },
     registrationDeadline: { type: Date },
     registrationFee: { type: Number, default: 0 },
+    
     contact: { type: String },
 
     // New field: an array to hold references to the teams that registered
