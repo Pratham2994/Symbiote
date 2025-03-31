@@ -7,9 +7,9 @@ const competitionSchema = new mongoose.Schema({
     tags: [{ type: String }],
     description: { type: String },
     collegeName: { type: String },
-    hackathonLocation: { type: String },
-    hackathonStartDate: { type: Date },
-    hackathonEndDate: { type: Date },
+    competitionLocation: { type: String },
+    competitionStartDate: { type: Date },
+    competitionEndDate: { type: Date },
     timing: { type: String },
     registrationLink: { type: String },
     prize: { type: String },
@@ -18,9 +18,11 @@ const competitionSchema = new mongoose.Schema({
     contact: { type: String },
 
     // New field: an array to hold references to the teams that registered
-    registeredTeams: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Team' }]
+    registeredTeams: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Team' }],
+
+    imagePath: { type: String }
 
 }, { timestamps: true });
 
 
-const Competition = mongoose.model('Competition', competitionSchema);
+module.exports = mongoose.model('Competition', competitionSchema);

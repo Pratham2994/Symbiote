@@ -4,6 +4,12 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const connectDB = require('./config/config');
 const authRoutes = require('./routes/authRoutes');
+const competitionRoutes = require('./routes/competitionRoutes');
+
+
+
+
+
 
 dotenv.config();
 const app = express();
@@ -26,6 +32,7 @@ app.use((err, req, res, next) => {
   next();
 });
 
+app.use('/api/competitions', competitionRoutes);
 // Connect MongoDB
 connectDB();
 
