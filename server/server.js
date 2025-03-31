@@ -35,6 +35,7 @@ app.use((err, req, res, next) => {
 
 app.use('/api/competitions', competitionRoutes);
 app.use('/api/teams', teamRoutes);
+
 // Connect MongoDB
 connectDB();
 
