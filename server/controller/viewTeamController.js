@@ -80,7 +80,7 @@ const getTeamsByUserAndCompetition = async (req, res) => {
                 path: 'registeredTeams',
                 populate: {
                     path: 'members',
-                    select: 'frontendScore backendScore eqScore'
+                    select: 'frontendScore backendScore eqScore username githubLink linkedinLink twitterLink'
                 },
                 select: 'name members averageFrontendScore averageBackendScore averageEqScore'
             });
@@ -178,7 +178,15 @@ const getTeamsByUserAndCompetition = async (req, res) => {
                 return {
                     teamId: team._id,
                     name: team.name,
-                    members: team.members,
+                    members: team.members.map(member => ({
+                        _id: member._id,
+                        username: member.username,
+                        frontendScore: member.frontendScore,
+                        backendScore: member.backendScore,
+                        eqScore: member.eqScore,
+                        githubLink: member.githubLink || null,
+
+                    })),
                     matchScore: matchScore
                 };
             } catch (error) {
@@ -186,7 +194,14 @@ const getTeamsByUserAndCompetition = async (req, res) => {
                 return {
                     teamId: team._id,
                     name: team.name,
-                    members: team.members,
+                    members: team.members.map(member => ({
+                        _id: member._id,
+                        username: member.username,
+                        frontendScore: member.frontendScore,
+                        backendScore: member.backendScore,
+                        eqScore: member.eqScore,
+                        githubLink: member.githubLink || null,
+                    })),
                     matchScore: null,
                     error: 'Failed to calculate match score'
                 };
