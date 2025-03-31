@@ -23,7 +23,7 @@ const AboutSection = () => {
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ delay: index * 0.1 }}
+              transition={{ delay:0.05 }}
               whileHover={cardHover}
             >
               <h3 className="text-xl font-semibold mb-2">{member.name}</h3>

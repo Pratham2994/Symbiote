@@ -22,7 +22,7 @@ const FeaturesSection = () => {
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ delay: index * 0.2 }}
+              transition={{ delay: 0.05 }}
               whileHover={{
                 scale: 1.05,
                 boxShadow: '0px 0px 20px rgba(167,68,195,0.7)',

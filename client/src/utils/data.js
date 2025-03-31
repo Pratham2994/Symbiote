@@ -16,6 +16,7 @@ export const features = [
     title: "Streamlined Process",
     description: "From team formation to project submission, we make the entire hackathon journey smooth and efficient."
   }
+
 ];
 
 export const team = [

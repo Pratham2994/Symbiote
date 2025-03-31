@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import heroImage from '../assets/hero3.png';
 
 const HeroSection = ({ onAuthClick }) => {
   return (
@@ -43,9 +44,9 @@ const HeroSection = ({ onAuthClick }) => {
           </div>
           <motion.div className="relative">
             <motion.img 
-              src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=800&q=80" 
+              src={heroImage} 
               alt="Team Collaboration"
-              className="rounded-2xl"
+              className="rounded-2xl w-full h-auto max-w-[620px] object-contain"
               initial={{ y: 0, filter: 'brightness(1)' }}
               animate={{ 
                 y: [0, -5, 0],
