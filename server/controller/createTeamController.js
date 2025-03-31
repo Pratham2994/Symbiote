@@ -1,6 +1,6 @@
 const Team = require('../models/Team');
 const User = require('../models/User');
-const Competition = require('../models/Competition');
+const Competition = require('../models/competition');
 
 exports.createTeam = async (req, res) => {
     try {

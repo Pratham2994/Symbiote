@@ -73,7 +73,7 @@ const createCompetition = async (req, res) => {
 const getAllCompetitions = async (req, res) => {
     try {
         // Default to ascending order unless explicitly set to 'desc'
-        const sortOrder = req.query.sortOrder === 'desc' ? -1 : 1;
+        const sortOrder = req.query.sortOrder === 'asc' ? 1 : -1;
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
         const skip = (page - 1) * limit;

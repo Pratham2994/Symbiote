@@ -9,7 +9,7 @@ const {
 } = require('../controller/competitionController');
 
 // Public routes (no middleware)
-router.get('/',protect,getAllCompetitions);
+router.get('/',getAllCompetitions);
 router.get('/:id',protect, getCompetitionById);
 
 
