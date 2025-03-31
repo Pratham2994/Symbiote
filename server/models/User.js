@@ -30,7 +30,7 @@ const userSchema = new mongoose.Schema({
   backendScore: { type: Number },
   eqScore: { type: Number },
 
-  //friends: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
+  friends: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);
