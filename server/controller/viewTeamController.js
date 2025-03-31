@@ -1,30 +1,6 @@
 const Team = require('../models/Team');
 const User = require('../models/User');
 const Competition = require('../models/competition');
-const axios = require('axios');
-
-const findMatch = async (candidate1Scores, candidate2Scores, weights = null) => {
-    try {
-        const payload = {
-            candidate1_scores: candidate1Scores,
-            candidate2_scores: candidate2Scores,
-        };
-
-        if (weights) {
-            payload.weights = weights;
-        }
-
-        const response = await axios.post(`http://127.0.0.1:8000/calculate-match`, payload, {
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
-        return response.data.match_score;
-    } catch (error) {
-        console.error("Error calling FastAPI service:", error.message);
-        throw error;
-    }
-};
 
 const getTeamsByUserAndCompetition = async (req, res) => {
     try {
