@@ -1,9 +1,9 @@
 // SignupSteps.jsx
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
 import { Plus, X, FileText, Github, Link as LinkIcon, ArrowLeft } from 'lucide-react';
 import SimpleBar from 'simplebar-react';
 import 'simplebar-react/dist/simplebar.min.css';
+import { toast } from 'react-toastify';
 
 // Add custom scrollbar styles
 const scrollbarStyles = `
@@ -95,6 +95,14 @@ const SignupSteps = ({ email, password, onClose }) => {
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+
+  // Add useEffect to reset scroll position when step changes
+  useEffect(() => {
+    const scrollContainer = document.querySelector('.simplebar-content-wrapper');
+    if (scrollContainer) {
+      scrollContainer.scrollTop = 0;
+    }
+  }, [step]);
 
   const validateOtp = () => {
     if (!otp || otp.length !== 6) {
@@ -238,12 +246,43 @@ const SignupSteps = ({ email, password, onClose }) => {
       });
       const data = await response.json();
       if (response.ok) {
+        toast.success('Signup successful! Welcome to Symbiote.', {
+          style: {
+            background: '#0B0B0B',
+            border: '1px solid rgba(139, 92, 246, 0.2)',
+            boxShadow: '0 0 10px rgba(139, 92, 246, 0.1)',
+            color: '#E5E7EB'
+          },
+          progressStyle: {
+            background: '#8B5CF6'
+          }
+        });
         onClose();
       } else {
-        setErrors(prev => ({ ...prev, submit: data.message || 'Registration failed' }));
+        toast.error(data.message || 'Registration failed', {
+          style: {
+            background: '#0B0B0B',
+            border: '1px solid rgba(139, 92, 246, 0.2)',
+            boxShadow: '0 0 10px rgba(139, 92, 246, 0.1)',
+            color: '#E5E7EB'
+          },
+          progressStyle: {
+            background: '#8B5CF6'
+          }
+        });
       }
     } catch (error) {
-      setErrors(prev => ({ ...prev, submit: 'Registration failed' }));
+      toast.error('Registration failed. Please try again.', {
+        style: {
+          background: '#0B0B0B',
+          border: '1px solid rgba(139, 92, 246, 0.2)',
+          boxShadow: '0 0 10px rgba(139, 92, 246, 0.1)',
+          color: '#E5E7EB'
+        },
+        progressStyle: {
+          background: '#8B5CF6'
+        }
+      });
     } finally {
       setLoading(false);
     }

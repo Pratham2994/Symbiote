@@ -5,6 +5,7 @@ import { X, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import SignupSteps from './SignupSteps';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 
 const AuthModal = ({ type, onClose }) => {
   const { login, validateEmail, validatePassword, loading, error: authError } = useAuth();
@@ -92,6 +93,17 @@ const AuthModal = ({ type, onClose }) => {
     try {
       if (type === 'login') {
         await login(formData.email, formData.password);
+        toast.success('Login successful! Welcome back.', {
+          style: {
+            background: '#0B0B0B',
+            border: '1px solid rgba(139, 92, 246, 0.2)',
+            boxShadow: '0 0 10px rgba(139, 92, 246, 0.1)',
+            color: '#E5E7EB'
+          },
+          progressStyle: {
+            background: '#8B5CF6'
+          }
+        });
         onClose();
         navigate('/dashboard');
       } else {
@@ -105,17 +117,31 @@ const AuthModal = ({ type, onClose }) => {
         if (response.ok) {
           setShowSignupSteps(true);
         } else {
-          setErrors(prev => ({
-            ...prev,
-            submit: data.message || 'Failed to send OTP'
-          }));
+          toast.error(data.message || 'Failed to send OTP', {
+            style: {
+              background: '#0B0B0B',
+              border: '1px solid rgba(139, 92, 246, 0.2)',
+              boxShadow: '0 0 10px rgba(139, 92, 246, 0.1)',
+              color: '#E5E7EB'
+            },
+            progressStyle: {
+              background: '#8B5CF6'
+            }
+          });
         }
       }
     } catch (error) {
-      setErrors(prev => ({
-        ...prev,
-        submit: error.message || 'An error occurred'
-      }));
+      toast.error(error.message || 'An error occurred', {
+        style: {
+          background: '#0B0B0B',
+          border: '1px solid rgba(139, 92, 246, 0.2)',
+          boxShadow: '0 0 10px rgba(139, 92, 246, 0.1)',
+          color: '#E5E7EB'
+        },
+        progressStyle: {
+          background: '#8B5CF6'
+        }
+      });
     } finally {
       setOtpLoading(false);
     }
