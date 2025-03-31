@@ -8,6 +8,7 @@ import Teams from "./pages/Teams";
 import Friends from "./pages/Friends";
 import Profile from "./pages/Profile";
 import Notifications from "./pages/Notifications";
+import ErrorPage from "./pages/ErrorPage";
 
 const router = createBrowserRouter([
   {
@@ -26,6 +27,10 @@ const router = createBrowserRouter([
       { path: "profile", element: <Profile /> },
       { path: "notifications", element: <Notifications /> },
     ],
+  },
+  {
+    path: "*",
+    element: <ErrorPage />,
   },
 ]);
 

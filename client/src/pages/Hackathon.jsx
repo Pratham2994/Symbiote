@@ -1,13 +1,21 @@
-import React, { useEffect } from "react";
-import { useParams } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import UserNavbar from "../components/UserNavbar";
-import { Github, Calendar, MapPin, Clock, Users, Award, Building2, Tag, Mail, Phone, Link as LinkIcon } from "lucide-react";
+import { Github, Calendar, MapPin, Clock, Users, Award, Building2, Tag, Mail, Phone, Link as LinkIcon, X } from "lucide-react";
 import { useHackathon } from "../context/HackathonContext";
-import { motion } from "framer-motion";
+import { useAuth } from "../context/AuthContext";
+import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "react-toastify";
 
 const Hackathon = () => {
     const { id } = useParams();
+    const navigate = useNavigate();
     const { selectedHackathon, fetchHackathonById } = useHackathon();
+    const { user } = useAuth();
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [teamName, setTeamName] = useState("");
+    const [error, setError] = useState("");
+    const [isLoading, setIsLoading] = useState(false);
 
     // Always run this useEffect to fetch the hackathon by id
     useEffect(() => {
@@ -25,6 +33,113 @@ const Hackathon = () => {
             window.scrollTo(0, 0);
         }
     }, [id]);
+
+    const handleCreateTeam = async () => {
+        if (!teamName.trim()) {
+            toast.error("Team name cannot be empty", {
+                style: {
+                    background: '#0B0B0B',
+                    border: '1px solid rgba(139, 92, 246, 0.2)',
+                    boxShadow: '0 0 10px rgba(139, 92, 246, 0.1)',
+                    color: '#E5E7EB'
+                },
+                progressStyle: {
+                    background: '#8B5CF6'
+                }
+            });
+            return;
+        }
+
+        if (teamName.length < 3) {
+            toast.error("Team name must be at least 3 characters long", {
+                style: {
+                    background: '#0B0B0B',
+                    border: '1px solid rgba(139, 92, 246, 0.2)',
+                    boxShadow: '0 0 10px rgba(139, 92, 246, 0.1)',
+                    color: '#E5E7EB'
+                },
+                progressStyle: {
+                    background: '#8B5CF6'
+                }
+            });
+            return;
+        }
+
+        if (teamName.length > 50) {
+            toast.error("Team name cannot exceed 50 characters", {
+                style: {
+                    background: '#0B0B0B',
+                    border: '1px solid rgba(139, 92, 246, 0.2)',
+                    boxShadow: '0 0 10px rgba(139, 92, 246, 0.1)',
+                    color: '#E5E7EB'
+                },
+                progressStyle: {
+                    background: '#8B5CF6'
+                }
+            });
+            return;
+        }
+
+        setIsLoading(true);
+        setError("");
+
+        try {
+            const response = await fetch("http://localhost:5000/api/teams/create", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                credentials: "include",
+                body: JSON.stringify({
+                    user_id: user._id,
+                    competition_id: id,
+                    name: teamName.trim()
+                })
+            });
+
+            if (!response.ok) {
+                const data = await response.json();
+                throw new Error(data.message || "Failed to create team");
+            }
+
+            // Close modal and reset form
+            setIsModalOpen(false);
+            setTeamName("");
+            // Refresh hackathon data to show updated teams
+            fetchHackathonById(id);
+            
+            // Show success toast
+            toast.success("Team created successfully!", {
+                style: {
+                    background: '#0B0B0B',
+                    border: '1px solid rgba(139, 92, 246, 0.2)',
+                    boxShadow: '0 0 10px rgba(139, 92, 246, 0.1)',
+                    color: '#E5E7EB'
+                },
+                progressStyle: {
+                    background: '#8B5CF6'
+                }
+            });
+
+            // Navigate to teams page
+            navigate(`/teams/${id}`);
+        } catch (err) {
+            // Show error toast
+            toast.error(err.message || "Failed to create team", {
+                style: {
+                    background: '#0B0B0B',
+                    border: '1px solid rgba(139, 92, 246, 0.2)',
+                    boxShadow: '0 0 10px rgba(139, 92, 246, 0.1)',
+                    color: '#E5E7EB'
+                },
+                progressStyle: {
+                    background: '#8B5CF6'
+                }
+            });
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     // Render a loading state while waiting for hackathon details
     if (!selectedHackathon) {
@@ -203,7 +318,10 @@ const Hackathon = () => {
                                 <Users className="w-5 h-5" />
                                 View Teams
                             </button>
-                            <button className="px-6 py-3 bg-venom-purple rounded-lg shadow-neon hover:shadow-neon-lg hover:bg-venom-purple/90 hover:scale-105 transition-all flex items-center justify-center gap-2">
+                            <button 
+                                onClick={() => setIsModalOpen(true)}
+                                className="px-6 py-3 bg-venom-purple rounded-lg shadow-neon hover:shadow-neon-lg hover:bg-venom-purple/90 hover:scale-105 transition-all flex items-center justify-center gap-2"
+                            >
                                 <Users className="w-5 h-5" />
                                 Create Team
                             </button>
@@ -233,6 +351,64 @@ const Hackathon = () => {
                     </div>
                 </div>
             </footer>
+            <AnimatePresence>
+                {isModalOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
+                        onClick={() => setIsModalOpen(false)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className="bg-[#0B0B0B] border border-venom-purple/30 rounded-xl p-6 w-full max-w-md relative"
+                            onClick={e => e.stopPropagation()}
+                        >
+                            <button
+                                onClick={() => setIsModalOpen(false)}
+                                className="absolute top-4 right-4 text-ghost-lilac/60 hover:text-venom-purple transition-colors"
+                            >
+                                <X size={20} />
+                            </button>
+
+                            <h2 className="text-2xl font-bold mb-4 bg-gradient-to-r from-venom-purple to-symbiote-purple bg-clip-text text-transparent">
+                                Create New Team
+                            </h2>
+
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-ghost-lilac/80 mb-2">Team Name</label>
+                                    <input
+                                        type="text"
+                                        value={teamName}
+                                        onChange={(e) => setTeamName(e.target.value)}
+                                        className="w-full bg-symbiote-purple/10 border border-venom-purple/30 rounded-lg px-4 py-2 text-ghost-lilac focus:outline-none focus:border-venom-purple/60 focus:shadow-neon transition-all"
+                                        placeholder="Enter your team name"
+                                    />
+                                </div>
+
+                                <button
+                                    onClick={handleCreateTeam}
+                                    disabled={isLoading}
+                                    className="w-full px-6 py-3 bg-venom-purple rounded-lg shadow-neon hover:shadow-neon-lg hover:bg-venom-purple/90 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {isLoading ? (
+                                        <>
+                                            <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                                            Creating...
+                                        </>
+                                    ) : (
+                                        "Create Team"
+                                    )}
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };
