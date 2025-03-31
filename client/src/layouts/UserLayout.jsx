@@ -4,7 +4,7 @@ import ProtectedRoute from "../ProtectedRoute";
 
 export default function UserLayout() {
   return (
-    <ProtectedRoute role="user">
+    <ProtectedRoute role="Student">
       <>
         <UserNavbar />
         <Outlet />

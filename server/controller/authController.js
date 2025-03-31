@@ -282,9 +282,13 @@ const sendOTP = async (req, res) => {
         const { email } = req.body;
         
         // Validate email
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const emailRegex = /^[^\s@]+@somaiya\.edu$/;
         if (!emailRegex.test(email)) {
             return res.status(400).json({ message: 'Invalid email format' });
+        }
+        const userExists = await User.findOne({ email });
+        if (userExists) {
+            return res.status(400).json({ message: 'User already exists' });
         }
 
         // Generate 6-digit OTP

@@ -4,9 +4,11 @@ import { motion } from 'framer-motion';
 import { X, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import SignupSteps from './SignupSteps';
+import { useNavigate } from 'react-router-dom';
 
 const AuthModal = ({ type, onClose }) => {
   const { login, validateEmail, validatePassword, loading, error: authError } = useAuth();
+  const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
     email: '',
@@ -17,7 +19,8 @@ const AuthModal = ({ type, onClose }) => {
   const [errors, setErrors] = useState({
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    submit: ''
   });
 
   const [showPassword, setShowPassword] = useState(false);
@@ -68,7 +71,6 @@ const AuthModal = ({ type, onClose }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validate all fields
     const emailError = validateEmail(formData.email);
     const passwordError = validatePassword(formData.password);
     let confirmPasswordError = '';
@@ -91,8 +93,8 @@ const AuthModal = ({ type, onClose }) => {
       if (type === 'login') {
         await login(formData.email, formData.password);
         onClose();
+        navigate('/dashboard');
       } else {
-        // For signup, send OTP directly using backend endpoint
         setOtpLoading(true);
         const response = await fetch('http://localhost:5000/api/auth/send-otp', {
           method: 'POST',
@@ -103,11 +105,17 @@ const AuthModal = ({ type, onClose }) => {
         if (response.ok) {
           setShowSignupSteps(true);
         } else {
-          console.error('Error sending OTP:', data.message);
+          setErrors(prev => ({
+            ...prev,
+            submit: data.message || 'Failed to send OTP'
+          }));
         }
       }
     } catch (error) {
-      console.error('Auth error:', error);
+      setErrors(prev => ({
+        ...prev,
+        submit: error.message || 'An error occurred'
+      }));
     } finally {
       setOtpLoading(false);
     }
@@ -125,7 +133,9 @@ const AuthModal = ({ type, onClose }) => {
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
-        className="bg-void-black border border-venom-purple/20 rounded-xl p-6 w-full max-w-md shadow-neon"
+        className={`bg-void-black border border-venom-purple/20 rounded-xl p-6 shadow-neon ${
+          showSignupSteps ? 'w-[800px]' : 'w-full max-w-md'
+        }`}
         onClick={e => e.stopPropagation()}
       >
         <div className="flex justify-between items-center mb-6">
@@ -159,7 +169,7 @@ const AuthModal = ({ type, onClose }) => {
                 onChange={handleInputChange}
                 onBlur={handleBlur}
                 className={`w-full px-4 py-2 rounded-lg bg-symbiote-purple/20 border ${
-                  errors.email ? 'border-red-500' : 'border-venom-purple/30'
+                  errors.email ? "border-red-500" : "border-venom-purple/30"
                 } focus:border-venom-purple focus:outline-none focus:ring-2 focus:ring-venom-purple/20`}
                 placeholder="your.email@somaiya.edu"
                 disabled={loading}
@@ -173,13 +183,13 @@ const AuthModal = ({ type, onClose }) => {
               <label className="block text-sm font-medium mb-2">Password</label>
               <div className="relative">
                 <input
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   name="password"
                   value={formData.password}
                   onChange={handleInputChange}
                   onBlur={handleBlur}
                   className={`w-full px-4 py-2 rounded-lg bg-symbiote-purple/20 border ${
-                    errors.password ? 'border-red-500' : 'border-venom-purple/30'
+                    errors.password ? "border-red-500" : "border-venom-purple/30"
                   } focus:border-venom-purple focus:outline-none focus:ring-2 focus:ring-venom-purple/20`}
                   placeholder="••••••••"
                   disabled={loading}
@@ -197,18 +207,18 @@ const AuthModal = ({ type, onClose }) => {
               )}
             </div>
 
-            {type === 'signup' && (
+            {type === "signup" && (
               <div>
                 <label className="block text-sm font-medium mb-2">Confirm Password</label>
                 <div className="relative">
                   <input
-                    type={showConfirmPassword ? 'text' : 'password'}
+                    type={showConfirmPassword ? "text" : "password"}
                     name="confirmPassword"
                     value={formData.confirmPassword}
                     onChange={handleInputChange}
                     onBlur={handleBlur}
                     className={`w-full px-4 py-2 rounded-lg bg-symbiote-purple/20 border ${
-                      errors.confirmPassword ? 'border-red-500' : 'border-venom-purple/30'
+                      errors.confirmPassword ? "border-red-500" : "border-venom-purple/30"
                     } focus:border-venom-purple focus:outline-none focus:ring-2 focus:ring-venom-purple/20`}
                     placeholder="••••••••"
                     disabled={loading}
@@ -230,9 +240,9 @@ const AuthModal = ({ type, onClose }) => {
             <button
               type="submit"
               className="w-full py-3 bg-venom-purple rounded-lg font-semibold shadow-neon hover:shadow-lg hover:bg-venom-purple/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={type === 'signup' ? otpLoading : loading}
+              disabled={type === "signup" ? otpLoading : loading}
             >
-              {type === 'login' ? (
+              {type === "login" ? (
                 loading ? (
                   <span className="flex items-center justify-center">
                     <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -242,7 +252,7 @@ const AuthModal = ({ type, onClose }) => {
                     Processing...
                   </span>
                 ) : (
-                  'Log in'
+                  "Log in"
                 )
               ) : (
                 otpLoading ? (
@@ -254,7 +264,7 @@ const AuthModal = ({ type, onClose }) => {
                     Processing...
                   </span>
                 ) : (
-                  'Send OTP'
+                  "Send OTP"
                 )
               )}
             </button>
@@ -263,9 +273,9 @@ const AuthModal = ({ type, onClose }) => {
 
         {!showSignupSteps && (
           <p className="mt-6 text-center text-sm text-ghost-lilac/60">
-            {type === 'login' ? (
+            {type === "login" ? (
               <>
-                Don't have an account?{' '}
+                Don't have an account?{" "}
                 <button
                   onClick={toggleAuthType}
                   className="text-venom-purple hover:text-venom-purple/80 font-medium"
@@ -276,7 +286,7 @@ const AuthModal = ({ type, onClose }) => {
               </>
             ) : (
               <>
-                Already have an account?{' '}
+                Already have an account?{" "}
                 <button
                   onClick={toggleAuthType}
                   className="text-venom-purple hover:text-venom-purple/80 font-medium"
