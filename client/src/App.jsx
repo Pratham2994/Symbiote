@@ -1,10 +1,9 @@
 import { RouterProvider } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import router from "./router";
-import { ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
-// Add custom CSS to override toast styles
 const toastStyles = `
   .Toastify__toast-icon svg {
     fill: #8B5CF6 !important;
