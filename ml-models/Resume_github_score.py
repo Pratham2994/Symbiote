@@ -10,9 +10,11 @@ import math
 from collections import Counter
 from datetime import datetime, timezone
 from dotenv import load_dotenv
+from google import genai
 
 import PyPDF2
 import docx
+import pdfplumber
 
 # Load environment variables
 load_dotenv()
@@ -20,6 +22,70 @@ load_dotenv()
 # Get GitHub token from environment variables
 GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
 HEADERS = {"Authorization": f"Bearer {GITHUB_TOKEN}"}
+
+api_key = os.getenv("GEMINI_API_KEY")
+client = genai.Client(api_key=api_key)
+
+
+def analyze_with_gemini(resume_file_path):
+    try:
+        resume_text = extract_text(resume_file_path)
+
+        prompt = f"""
+        Analyze the following resume text and provide honest scores for both Frontend and Backend skills based on the demonstrated experience, technologies, tools, methodologies, and knowledge related to each area. The scores should be on a scale of 1 to 100, where:
+
+        - Frontend Score: Reflects the candidate's skills and experience in frontend development, including but not limited to any programming languages, libraries, frameworks, UI/UX principles, responsive design, client-side development practices, and web design patterns.
+        - Backend Score: Reflects the candidate's skills and experience in backend development, including but not limited to any server-side languages, frameworks, databases, cloud technologies, APIs, microservices, architecture patterns, and development methodologies.
+
+        Return **only** the scores for Frontend and Backend in the following format, with no additional explanation or text:
+        Frontend Score: <score>
+        Backend Score: <score>
+
+        Resume text: 
+        {resume_text}
+        """
+
+
+        response = client.models.generate_content(
+            model="gemini-2.0-flash",  
+            contents=prompt
+        )
+        
+        if response and response.text:
+            gemini_result = response.text  
+            print(f"[DEBUG] Gemini Response: {gemini_result}")
+            
+            gemini_frontend_score = extract_score(gemini_result, "frontend")
+            gemini_backend_score = extract_score(gemini_result, "backend")
+            
+            return gemini_frontend_score, gemini_backend_score
+        else:
+            print("[ERROR] Failed to get valid response from Gemini.")
+            return 0, 0
+    except Exception as e:
+        print(f"[ERROR] Error analyzing with Gemini: {str(e)}")
+        return 0, 0
+    
+import re
+
+def extract_score(result, score_type):
+    """
+    Extracts the score for a specific score type (Frontend/Backend) from the result.
+    Example: "Frontend Score: 80"
+    """
+    try:
+        pattern = rf"{score_type}\s*Score\s*:\s*(\d+)"
+        match = re.search(pattern, result, re.IGNORECASE)
+        
+        if match:
+            return int(match.group(1))
+        else:
+            print(f"[ERROR] {score_type} not found in the response.")
+            return 0
+    except Exception as e:
+        print(f"[ERROR] Error extracting score: {str(e)}")
+        return 0
+
 
 FRONTEND_KEYWORDS = {
     "html", "css", "javascript", "react", "angular", "vue", "jquery", "bootstrap",
@@ -102,8 +168,16 @@ def analyze_resume(file_path):
     print("Backend keyword counts:", dict(backend_counts))
     print(f"Frontend score: {frontend_score}/100")
     print(f"Backend score: {backend_score}/100")
+
+    gemini_frontend_score, gemini_backend_score = analyze_with_gemini(file_path)
     
-    return {"frontend_score": frontend_score, "backend_score": backend_score}
+    final_frontend_score = (frontend_score + gemini_frontend_score) / 2
+    final_backend_score = (backend_score + gemini_backend_score) / 2
+    
+    print(f"[DEBUG] Combined Frontend Score (Avg): {final_frontend_score}/100")
+    print(f"[DEBUG] Combined Backend Score (Avg): {final_backend_score}/100")
+    
+    return {"frontend_score": final_frontend_score, "backend_score": final_backend_score}
 
 def normalize_score(raw_score, scale):
     """
@@ -291,21 +365,66 @@ def analyze_github(github_link):
     except Exception as e:
         print(f"[ERROR] Exception in analyze_github: {str(e)}")
         return {"error": str(e)}
+    
+def get_github_rank(username: str):
+    try:
+        response = requests.get(f"http://localhost:3000/rank/{username}")
+        if response.status_code == 200:
+            # Extract the percentile from the response JSON
+            rank_data = response.json().get('rank', {})
+            percentile = rank_data.get('percentile', -1)
+            return percentile  
+        else:
+            print(f"Failed to fetch rank for {username}, status code: {response.status_code}")
+            return -1 
+    except Exception as e:
+        print(f"Error fetching rank for {username}: {str(e)}")
+        return -1  
+
+
+def normalize_using_rank(raw_score, percentile, max_possible_score=100):
+    """
+    Normalize the score based on the percentile provided.
+    A higher percentile indicates worse performance, so we need to adjust for that.
+    """
+    if percentile > 0: 
+        # Invert the percentile, since higher percentile is worse, we want to boost the score.
+        normalized = raw_score * (1 - percentile / 100)
+    else:
+        normalized = raw_score 
+    
+    return min(normalized, max_possible_score)
+
 
 def combined_analysis(resume_file: str, github_url: str, weight_github: int = 2, weight_resume: int = 1):
+    username = extract_username(github_url)
+    
+    rank = get_github_rank(username)
+    print(f"[DEBUG] GitHub rank for {username}: {rank}")
+    
     resume_results = analyze_resume(resume_file)
     github_results = analyze_github(github_url)
     
     final_frontend = (github_results["frontend_score"] * weight_github + resume_results["frontend_score"] * weight_resume) / (weight_github + weight_resume)
     final_backend = (github_results["backend_score"] * weight_github + resume_results["backend_score"] * weight_resume) / (weight_github + weight_resume)
     
+    # final_frontend_normalized = normalize_using_rank(final_frontend, rank)
+    # final_backend_normalized = normalize_using_rank(final_backend, rank)
+    
+    # print("Combined Final Scores")
+    # print(f"Combined Frontend Score: {final_frontend_normalized:.1f}/100")
+    # print(f"Combined Backend Score: {final_backend_normalized:.1f}/100")
+  
+    # return {"final_frontend": final_frontend_normalized, "final_backend": final_backend_normalized}
+
     print("Combined Final Scores")
     print(f"Combined Frontend Score: {final_frontend:.1f}/100")
     print(f"Combined Backend Score: {final_backend:.1f}/100")
   
     return {"final_frontend": final_frontend, "final_backend": final_backend}
 
+
 # Debug
 if __name__ == "__main__":
-    scores = combined_analysis("C:/Users/makwa/VS-code/web_dev/symbiote/ml-models/Resume_varnika.pdf", "https://github.com/CLONER786")
+    scores = combined_analysis("ml-models\Resume_varnika.pdf", "https://github.com/CLONER786")
     print(scores)

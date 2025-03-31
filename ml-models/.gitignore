@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -117,6 +117,5 @@ Thumbs.db
 *.swp
 *.swo
 
->>>>>>> 0e544e53b2cabdbadc9a518f0dbfcb801b0a2f70
 
 my_copy.py
