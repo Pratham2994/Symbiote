@@ -10,6 +10,8 @@ const {
   verifyOTP
 } = require('../controller/authController');
 
+const { protect } = require('../middleware/authMiddleware');
+
 const multer = require('multer');
 
 // Configure multer for memory storage
@@ -26,6 +28,7 @@ router.post('/register', uploadMiddleware.single('resume'), registerUser);
 
 router.post('/login', loginUser);
 router.post('/logout', logoutUser);
+router.get('/verify', protect, verifyToken);
 
 
 
