@@ -28,5 +28,29 @@ const teamSchema = new mongoose.Schema({
   
 }, { timestamps: true });
 
+// Add this middleware before exporting the model
+teamSchema.pre('save', async function(next) {
+    if (this.members && this.members.length > 0) {
+        // Populate members to get their scores
+        await this.populate('members', 'frontendScore backendScore eqScore');
+        
+        // Calculate average scores
+        const totalScores = this.members.reduce((acc, member) => {
+            return {
+                frontend: acc.frontend + (member.frontendScore || 0),
+                backend: acc.backend + (member.backendScore || 0),
+                eq: acc.eq + (member.eqScore || 0)
+            };
+        }, { frontend: 0, backend: 0, eq: 0 });
+
+        const memberCount = this.members.length;
+        
+        this.averageFrontendScore = totalScores.frontend / memberCount;
+        this.averageBackendScore = totalScores.backend / memberCount;
+        this.averageEqScore = totalScores.eq / memberCount;
+    }
+    next();
+});
+
 module.exports = mongoose.model('Team', teamSchema);
 

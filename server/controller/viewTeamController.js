@@ -1,35 +1,95 @@
 const Team = require('../models/Team');
 const User = require('../models/User');
 const Competition = require('../models/competition');
+const axios = require('axios');
+
+const findMatch = async (candidate1Scores, candidate2Scores, weights = null) => {
+    try {
+        const payload = {
+            candidate1_scores: candidate1Scores,
+            candidate2_scores: candidate2Scores,
+        };
+
+        if (weights) {
+            payload.weights = weights;
+        }
+
+        const response = await axios.post(`http://127.0.0.1:8000/calculate-match`, payload, {
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        return response.data.match_score;
+    } catch (error) {
+        console.error("Error calling FastAPI service:", error.message);
+        throw error;
+    }
+};
 
 const getTeamsByUserAndCompetition = async (req, res) => {
     try {
         const { user_id, competition_id } = req.body;
 
-        // Get user scores
         const user = await User.findById(user_id)
             .select('frontendScore backendScore eqScore');
 
-        // Get teams registered for the specific competition
         const competition = await Competition.findById(competition_id)
             .populate({
                 path: 'registeredTeams',
-                select: 'name members'
+                populate: {
+                    path: 'members',
+                    select: 'frontendScore backendScore eqScore'
+                },
+                select: 'name members averageFrontendScore averageBackendScore averageEqScore'
             });
 
-        if (!user) {
+        if (!user || !competition) {
             return res.status(404).json({
                 success: false,
-                message: 'User not found'
+                message: !user ? 'User not found' : 'Competition not found'
             });
         }
+        console.log(competition);
+        console.log(user);
+        // Calculate match scores for each team
+        const teamsWithScores = await Promise.all(competition.registeredTeams.map(async (team) => {
+            let teamScores;
+            
+            // If team has more than one member, use average scores
+            if (team.members.length > 1) {
+                teamScores = {
+                    frontend: team.averageFrontendScore,
+                    backend: team.averageBackendScore,
+                    eq: team.averageEqScore
+                };
+            } else {
+                // If team has only one member, use that member's scores
+                const member = team.members[0];
+                teamScores = {
+                    frontend: member.frontendScore,
+                    backend: member.backendScore,
+                    eq: member.eqScore
+                };
+            }
 
-        if (!competition) {
-            return res.status(404).json({
-                success: false,
-                message: 'Competition not found'
-            });
-        }
+            const userScores = {
+                frontend: user.frontendScore,
+                backend: user.backendScore,
+                eq: user.eqScore
+            };
+
+            const matchScore = await findMatch(userScores, teamScores);
+
+            return {
+                teamId: team._id,
+                name: team.name,
+                members: team.members,
+                matchScore: matchScore
+            };
+        }));
+
+        // Sort teams by match score in descending order
+        teamsWithScores.sort((a, b) => b.matchScore - a.matchScore);
 
         res.status(200).json({
             success: true,
@@ -39,7 +99,7 @@ const getTeamsByUserAndCompetition = async (req, res) => {
                     backendScore: user.backendScore,
                     eqScore: user.eqScore
                 },
-                registeredTeams: competition.registeredTeams
+                teams: teamsWithScores
             }
         });
 
