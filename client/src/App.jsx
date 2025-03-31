@@ -3,7 +3,7 @@ import { AuthProvider } from "./context/AuthContext";
 import router from "./router";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-
+import { HackathonProvider } from "./context/HackathonContext";
 const toastStyles = `
   .Toastify__toast-icon svg {
     fill: #8B5CF6 !important;
@@ -41,9 +41,10 @@ const toastStyles = `
 function App() {
   return (
     <AuthProvider>
-      <style>{toastStyles}</style>
-      <RouterProvider router={router} />
-      <ToastContainer
+      <HackathonProvider>
+        <style>{toastStyles}</style>
+        <RouterProvider router={router} />
+        <ToastContainer
         position="top-right"
         autoClose={3000}
         hideProgressBar={false}
@@ -55,6 +56,7 @@ function App() {
         pauseOnHover
         theme="dark"
       />
+      </HackathonProvider>
     </AuthProvider>
   );
 }

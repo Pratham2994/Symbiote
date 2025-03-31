@@ -1,9 +1,53 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Github } from "lucide-react";
-import { hackathons } from "../utils/data";
+import { NavLink, useNavigate } from "react-router-dom";
 import { cardHover } from "../utils/animations";
+import { useAuth } from "../context/AuthContext";
+import { fetchCompetitions } from "../services/api";
+import { useHackathon } from "../context/HackathonContext";
+  
+// Helper function to format date in Indian style
+const getDaySuffix = (day) => {
+  if (day > 3 && day < 21) return 'th';
+  switch (day % 10) {
+    case 1: return 'st';
+    case 2: return 'nd';
+    case 3: return 'rd';
+    default: return 'th';
+  }
+};
+
+const formatIndianDate = (dateString) => {
+  const date = new Date(dateString);
+  const day = date.getDate();
+  const month = date.toLocaleString('en-US', { month: 'long' });
+  const year = date.getFullYear();
+  
+  return `${day}${getDaySuffix(day)} ${month} ${year}`;
+};
 
 export default function Dashboard() {
+  const { user } = useAuth();
+  const [competitions, setCompetitions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+  const { fetchHackathonById } = useHackathon();
+
+  useEffect(() => {
+    const loadCompetitions = async () => {
+      try {
+        const data = await fetchCompetitions(3);
+        setCompetitions(data);
+      } catch (error) {
+        console.error('Error loading competitions:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadCompetitions();
+  }, []);
+
   return (
     <div className="min-h-screen bg-void-black text-ghost-lilac">
       <main className="pt-24 px-4 md:px-8 max-w-7xl mx-auto">
@@ -12,60 +56,83 @@ export default function Dashboard() {
           <h1 className="text-4xl font-bold mb-2">
             Hi,{" "}
             <span className="bg-gradient-to-r from-venom-purple to-symbiote-purple bg-clip-text text-transparent">
-              User
+              {user.username}
             </span>
-            ! 👋
           </h1>
           <p className="text-ghost-lilac/70 text-lg">
             Ready to build something amazing?
           </p>
         </section>
-
+  
         {/* Upcoming Hackathons Section */}
         <section className="mb-24">
           <div className="flex justify-between items-center mb-8">
             <h2 className="text-2xl font-bold">Upcoming Hackathons</h2>
-            <button className="px-4 py-2 text-sm bg-venom-purple rounded-lg shadow-neon hover:shadow-lg hover:bg-venom-purple/90 transition-all">
+            <NavLink
+              to="/dashboard/hackathons"
+              className="px-4 py-2 text-sm bg-venom-purple rounded-lg shadow-neon hover:shadow-lg hover:bg-venom-purple/90 transition-all"
+            >
               Explore All
-            </button>
+            </NavLink>
           </div>
           <div className="grid md:grid-cols-3 gap-6">
-            {hackathons.map((hackathon) => (
-              <div
-                key={hackathon.id}
-                className="p-6 rounded-xl bg-gradient-to-br from-symbiote-purple/10 to-venom-purple/5 backdrop-blur-sm border border-venom-purple/20 hover:border-venom-purple/40 transition-all group cursor-pointer"
-                whileHover={cardHover}
-              >
-                <div className="relative mb-4 rounded-lg overflow-hidden">
-                  <img
-                    src={hackathon.image}
-                    alt={hackathon.name}
-                    className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-void-black/80 to-transparent" />
-                  <span className="absolute bottom-2 left-2 px-3 py-1 bg-venom-purple/90 rounded-full text-sm">
-                    {hackathon.date}
-                  </span>
+            {loading ? (
+              [...Array(3)].map((_, index) => (
+                <div
+                  key={index}
+                  className="p-6 rounded-xl bg-gradient-to-br from-symbiote-purple/10 to-venom-purple/5 backdrop-blur-sm border border-venom-purple/20 animate-pulse"
+                >
+                  <div className="h-48 bg-venom-purple/20 rounded-lg mb-4"></div>
+                  <div className="h-6 bg-venom-purple/20 rounded w-3/4 mb-2"></div>
+                  <div className="h-4 bg-venom-purple/20 rounded w-full mb-4"></div>
+                  <div className="flex justify-between items-center">
+                    <div className="h-4 bg-venom-purple/20 rounded w-1/3"></div>
+                    <div className="h-4 bg-venom-purple/20 rounded w-1/4"></div>
+                  </div>
                 </div>
-                <h3 className="text-xl font-semibold mb-2 group-hover:text-venom-purple transition-colors">
-                  {hackathon.name}
-                </h3>
-                <p className="text-ghost-lilac/70 mb-4 line-clamp-2">
-                  {hackathon.description}
-                </p>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-ghost-lilac/60">
-                    {hackathon.participants} participants
-                  </span>
-                  <span className="text-sm font-medium text-venom-purple">
-                    {hackathon.prize}
-                  </span>
+              ))
+            ) : (
+              competitions.map((competition) => (
+                <div
+                  key={competition._id}
+                  onClick={() => {
+                    fetchHackathonById(competition._id);
+                    navigate(`/dashboard/hackathon/${competition._id}`);
+                  }}
+                  className="p-6 rounded-xl bg-gradient-to-br from-symbiote-purple/10 to-venom-purple/5 backdrop-blur-sm border border-venom-purple/20 hover:shadow-lg group cursor-pointer transition-all"
+                  whileHover={cardHover}
+                >
+                  <div className="relative mb-4 rounded-lg overflow-hidden">
+                    <img
+                      src="https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&w=800&q=80"
+                      alt={competition.title}
+                      className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-void-black/80 to-transparent" />
+                    <span className="absolute bottom-2 left-2 px-3 py-1 bg-venom-purple/90 rounded-full text-sm">
+                      {formatIndianDate(competition.competitionStartDate)}
+                    </span>
+                  </div>
+                  <h3 className="text-xl font-semibold mb-2 group-hover:text-venom-purple transition-colors">
+                    {competition.title}
+                  </h3>
+                  <p className="text-ghost-lilac/70 mb-4 line-clamp-2">
+                    {competition.description}
+                  </p>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-ghost-lilac/60">
+                      {competition.registeredTeams?.length || 0} participants
+                    </span>
+                    <span className="text-sm font-medium text-venom-purple">
+                      {competition.prize || "TBA"}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </section>
-
+  
         {/* Footer */}
         <footer className="border-t border-venom-purple/20 py-6">
           <div className="flex justify-between items-center">
@@ -75,7 +142,7 @@ export default function Dashboard() {
             <div className="flex items-center gap-2">
               <span className="text-ghost-lilac/60 text-sm">Connect with us</span>
               <a
-                href="#"
+                href="https://github.com/Pratham2994/Symbiote"
                 className="text-ghost-lilac/60 hover:text-venom-purple transition-colors"
               >
                 <Github size={20} />
