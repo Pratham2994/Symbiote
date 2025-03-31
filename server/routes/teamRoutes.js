@@ -8,6 +8,6 @@ const {getTeamsByUserAndCompetition} = require('../controller/viewTeamController
 router.post('/create', protect, createTeam);
 
 
-router.post('/view', getTeamsByUserAndCompetition);
+router.post('/view', protect, getTeamsByUserAndCompetition);
 
 module.exports = router; 

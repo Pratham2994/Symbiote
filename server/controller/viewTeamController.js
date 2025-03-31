@@ -46,6 +46,32 @@ const getTeamsByUserAndCompetition = async (req, res) => {
             });
         }
 
+        // Check if user has already created a team for this competition
+        const userCreatedTeam = await Team.findOne({
+            competition: competition_id,
+            createdBy: user_id
+        });
+
+        if (userCreatedTeam) {
+            return res.status(400).json({
+                success: false,
+                message: 'You have already created a team for this competition'
+            });
+        }
+
+        // Check if user is already a member of any team in this competition
+        const userTeamMember = await Team.findOne({
+            competition: competition_id,
+            members: user_id
+        });
+
+        if (userTeamMember) {
+            return res.status(400).json({
+                success: false,
+                message: 'You are already a member of a team in this competition'
+            });
+        }
+
         const user = await User.findById(user_id)
             .select('frontendScore backendScore eqScore');
 
@@ -74,6 +100,24 @@ const getTeamsByUserAndCompetition = async (req, res) => {
             });
         }
 
+        // Check if competition registration deadline has passed
+        const registrationDeadline = new Date(competition.registrationDeadline);
+        if (registrationDeadline < new Date()) {
+            return res.status(400).json({
+                success: false,
+                message: 'Registration deadline for this competition has passed'
+            });
+        }
+
+        // Check if competition has started
+        const competitionStartDate = new Date(competition.competitionStartDate);
+        if (competitionStartDate < new Date()) {
+            return res.status(400).json({
+                success: false,
+                message: 'This competition has already started'
+            });
+        }
+
         // Validate user scores
         if (!isValidScore(user.frontendScore) || 
             !isValidScore(user.backendScore) || 
@@ -84,8 +128,14 @@ const getTeamsByUserAndCompetition = async (req, res) => {
             });
         }
 
-        console.log(competition);
-        console.log(user);
+        // Check if user has completed the assessment
+        if (!user.frontendScore || !user.backendScore || !user.eqScore) {
+            return res.status(400).json({
+                success: false,
+                message: 'Please complete your assessment before viewing team recommendations'
+            });
+        }
+
         // Calculate match scores for each team
         const teamsWithScores = await Promise.all(competition.registeredTeams.map(async (team) => {
             let teamScores;
