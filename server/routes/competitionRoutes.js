@@ -1,18 +1,20 @@
 const express = require('express');
 const router = express.Router();
-const { 
+const { protect } = require('../middleware/authMiddlewareStudent');
+
+const {
     createCompetition,
     getAllCompetitions,
-    
+    getCompetitionById
 } = require('../controller/competitionController');
 
-// Create a new competition
-router.post('/create', createCompetition);
+// Public routes (no middleware)
+router.get('/',protect,getAllCompetitions);
+router.get('/:id',protect, getCompetitionById);
 
-// Get all competitions
-router.get('/', getAllCompetitions);
 
-// Get single competition by ID
-// router.get('/:id', getCompetitionById);
+
+// Admin only routes (require admin authentication)
+router.post('/',createCompetition);
 
 module.exports = router; 

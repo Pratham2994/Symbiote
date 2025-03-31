@@ -5,9 +5,7 @@ const cookieParser = require('cookie-parser');
 const connectDB = require('./config/config');
 const authRoutes = require('./routes/authRoutes');
 const competitionRoutes = require('./routes/competitionRoutes');
-
-
-
+const path = require('path');
 
 
 
@@ -23,6 +21,8 @@ app.use(cors({
   origin: ['http://localhost:3000', 'http://localhost:5173'],
   credentials: true
 }));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 
 // Add better error handling for parsing errors
 app.use((err, req, res, next) => {
