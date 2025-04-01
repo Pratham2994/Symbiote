@@ -1,19 +1,12 @@
-# pip install PyPDF2 python-docx requests pdfplumber python-dotenv google-generativeai
-
+# github_analyzer.py
 import os
 import re
-import string
 import math
+import json
 import requests
-from collections import Counter
 from datetime import datetime, timezone
 from dotenv import load_dotenv
 from google import genai
-
-
-import PyPDF2
-import docx
-import pdfplumber
 
 # Load environment variables
 load_dotenv()
@@ -22,167 +15,13 @@ load_dotenv()
 GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
 HEADERS = {"Authorization": f"Bearer {GITHUB_TOKEN}"}
 
+# Configure Gemini API
 api_key = os.getenv("GEMINI_API_KEY")
 client = genai.Client(api_key=api_key)
 
-def analyze_with_gemini(resume_file_path):
-    """
-    Uses Gemini via the available 'generate' method in google-generativeai to analyze the resume text.
-    """
-    try:
-        resume_text = extract_text(resume_file_path)
-
-        prompt = f"""
-        Analyze the following resume text and critically assess the candidate's proficiency in both Frontend and Backend development based on their demonstrated experience, technologies, projects, and methodologies. 
-
-        ### **Scoring Criteria:**  
-        - **Frontend Score (1-100)**: Evaluate based on **depth and variety** of frontend skills, including but not limited to programming languages, libraries, frameworks, UI/UX principles, performance optimization, accessibility, responsive design, and client-side development best practices. Consider both **breadth (diverse skills)** and **depth (expert-level proficiency in specific areas)**.  
-        - **Backend Score (1-100)**: Evaluate based on **depth and variety** of backend skills, including but not limited to programming languages, databases, cloud infrastructure, API development, authentication, security practices, performance optimization, and system architecture. Consider both **practical implementation experience** and **advanced knowledge of backend systems**.
-
-        ### **Important Evaluation Notes:**  
-        - **Do not assume proficiency** based on keyword presence alone. Consider the **quality and depth of experience** mentioned.  
-        - Assign **realistic scores**: A **junior-level candidate** should not score near 100, and even experienced professionals should have reasonable gaps.  
-        - Be **objective and critical** rather than overly generous.  
-        - If there is **little or no evidence** of experience in a category, assign a low score.  
-
-        ### **Output Format (No extra text, only scores):**  
-        Frontend Score: <score>  
-        Backend Score: <score>  
-
-        ### **Resume Text:**  
-        {resume_text}
-        """
-
-        response = client.models.generate_content(
-            model="gemini-2.0-flash",  
-            contents=prompt
-        )
-        
-        if response and response.text:
-            gemini_result = response.text  
-            print(f"[DEBUG] Gemini Response: {gemini_result}")
-            
-            gemini_frontend_score = extract_score(gemini_result, "frontend")
-            gemini_backend_score = extract_score(gemini_result, "backend")
-            
-            return gemini_frontend_score, gemini_backend_score
-        else:
-            print("[ERROR] Failed to get valid response from Gemini.")
-            return 0, 0
-    except Exception as e:
-        print(f"[ERROR] Error analyzing with Gemini: {str(e)}")
-        return 0, 0
-
-
-def extract_score(result, score_type):
-    """
-    Extracts the score for a specific score type (Frontend/Backend) from the result.
-    Example: "Frontend Score: 80"
-    """
-    try:
-        pattern = rf"{score_type}\s*Score\s*:\s*(\d+)"
-        match = re.search(pattern, result, re.IGNORECASE)
-        if match:
-            return int(match.group(1))
-        else:
-            print(f"[ERROR] {score_type} not found in the response.")
-            return 0
-    except Exception as e:
-        print(f"[ERROR] Error extracting score: {str(e)}")
-        return 0
-
-
-FRONTEND_KEYWORDS = {
-    "html", "css", "javascript", "react", "angular", "vue", "jquery", "bootstrap",
-    "sass", "less", "tailwind", "ember", "backbone", "responsive", "ux", "ui",
-    "material", "semantic", "pug", "handlebars", "front-end", "ajax"
-}
-
-BACKEND_KEYWORDS = {
-    "node", "django", "flask", "express", "ruby", "rails", "php", "laravel", "spring",
-    "aspnet", "golang", "java", "csharp", "rust", "docker", "graphql", "rest",
-    "microservices", "kubernetes", "postgres", "mysql", "mongodb", "redis", "elasticsearch",
-    "ci", "cd", "jenkins", "aws", "azure", "gcp", "backend", "server", "api",
-    "python"  
-}
-
-def extract_text_from_pdf(pdf_path):
-    text = ""
-    try:
-        with open(pdf_path, "rb") as file:
-            pdf_reader = PyPDF2.PdfReader(file)
-            for page in pdf_reader.pages:
-                page_text = page.extract_text()
-                if page_text:
-                    text += page_text + "\n"
-    except Exception as e:
-        print(f"Error reading PDF file: {e}")
-    return text
-
-def extract_text_from_docx(docx_path):
-    text = ""
-    try:
-        doc = docx.Document(docx_path)
-        for para in doc.paragraphs:
-            text += para.text + "\n"
-    except Exception as e:
-        print(f"Error reading DOCX file: {e}")
-    return text
-
-def extract_text(file_path):
-    ext = os.path.splitext(file_path)[1].lower()
-    if ext == ".pdf":
-        return extract_text_from_pdf(file_path)
-    elif ext in [".docx", ".doc"]:
-        return extract_text_from_docx(file_path)
-    else:
-        raise ValueError("Unsupported file format. Please use PDF or DOCX.")
-
-def preprocess_text(text):
-    text = text.lower()
-    text = text.translate(str.maketrans("", "", string.punctuation))
-    text = re.sub(r'\s+', ' ', text)
-    return text
-
-def count_keywords(text, keywords):
-    pattern = r'\b(?:' + '|'.join(re.escape(word) for word in keywords) + r')\b'
-    matches = re.findall(pattern, text)
-    return Counter(matches)
-
-def calculate_score(keyword_counter, max_possible=50):
-    """
-    Percentile-normalized scoring based on max_possible keyword matches.
-    """
-    raw_score = sum(keyword_counter.values())
-    scaled_score = min((raw_score / max_possible) * 100, 100)
-    return scaled_score
-
-def analyze_resume(file_path):
-    print(f"\n[DEBUG] Starting resume analysis for file: {file_path}")
-    text = extract_text(file_path)
-    processed_text = preprocess_text(text)
-    
-    frontend_counts = count_keywords(processed_text, FRONTEND_KEYWORDS)
-    backend_counts = count_keywords(processed_text, BACKEND_KEYWORDS)
-    
-    frontend_score = calculate_score(frontend_counts)
-    backend_score = calculate_score(backend_counts)
-    
-    print("[DEBUG] Resume Analysis Results:")
-    print("Frontend keyword counts:", dict(frontend_counts))
-    print("Backend keyword counts:", dict(backend_counts))
-    print(f"Frontend score: {frontend_score}/100")
-    print(f"Backend score: {backend_score}/100")
-
-    gemini_frontend_score, gemini_backend_score = analyze_with_gemini(file_path)
-    
-    final_frontend_score = (frontend_score + gemini_frontend_score) / 2
-    final_backend_score = (backend_score + gemini_backend_score) / 2
-    
-    print(f"[DEBUG] Combined Frontend Score (Avg): {final_frontend_score}/100")
-    print(f"[DEBUG] Combined Backend Score (Avg): {final_backend_score}/100")
-    
-    return {"frontend_score": final_frontend_score, "backend_score": final_backend_score}
+# Define keywords lists for repository classification
+FRONTEND_KEYWORDS = ["react", "vue", "angular", "css", "html", "sass", "less", "bootstrap", "tailwind", "webpack", "vite", "ui", "frontend", "jsx"]
+BACKEND_KEYWORDS = ["node", "express", "django", "flask", "spring", "api", "server", "database", "sql", "nosql", "mongodb", "postgres", "mysql", "backend", "microservice"]
 
 def normalize_score(raw_score, scale):
     """
@@ -239,7 +78,7 @@ def recency_weight(pushed_at):
     else:
         return 0.5
 
-def get_user_repos(username: str, num_repos: int = 20):
+def get_user_repos(username: str, num_repos: int = 100):
     query = """
     query($username: String!, $num_repos: Int!) {
       user(login: $username) {
@@ -292,19 +131,22 @@ def collect_github_information(username):
     if not user_data:
         return None
     
-    repos_url = user_data.get("repos_url", "")
-    repos_response = requests.get(repos_url)
-    repos = repos_response.json() if repos_response.status_code == 200 else []
+    repos = user_data.get('repositories', {}).get('nodes', [])
     
     repo_data = []
+    count = 0
     
     for repo in repos:
         repo_name = repo['name']
         description = repo.get('description', "")
-        languages_url = repo.get('languages_url', "")
-        languages_response = requests.get(languages_url)
-        languages_dict = languages_response.json() if languages_response.status_code == 200 else {}
-        commit_count = repo.get('defaultBranchRef', {}).get('target', {}).get('history', {}).get('totalCount', 0)
+        
+        # Get language data directly from the GitHub API
+        languages_dict = get_all_repo_languages(username, repo_name)
+        
+        commit_count = 0
+        if repo.get('defaultBranchRef'):
+            commit_count = repo['defaultBranchRef']['target']['history']['totalCount']
+        
         pushed_at_str = repo.get('pushedAt', "")
 
         repo_info = {
@@ -315,35 +157,79 @@ def collect_github_information(username):
             "last_pushed": pushed_at_str
         }
         repo_data.append(repo_info)
+        count += 1
+
+    print("Number of Repos: ", count)
     
     return {
         "github_data": user_data,
         "repos": repo_data,
         "rank_data": rank_data
     }
+
 def get_gemini_analysis(github_json):
     prompt = f"""
-    Based on the following GitHub profile data and ranking data:
+    Based on the following GitHub profile data and ranking data, analyze the developer's skills in frontend and backend development:
     {json.dumps(github_json, indent=2)}
-    Please analyze and refine the frontend and backend scores.
+    
+    Please provide a concise analysis with these specific outputs:
+    1. Frontend skills assessment (score 0-100)
+    2. Backend skills assessment (score 0-100)
+    
+    Format your response exactly like this:
+    Frontend Score: [number]
+    Backend Score: [number]
+    Give no other text. Only the scores.
     """
     
-    model = genai.GenerativeModel("gemini-pro")
-    response = model.generate_content(prompt)
-    
-    return response.text if response else None
+    try:
+        response = client.models.generate_content(
+            model="gemini-2.0-flash",  
+            contents=prompt
+        )
+        
+        return response.text if response else None
+    except Exception as e:
+        print(f"[ERROR] Error in Gemini analysis: {str(e)}")
+        return None
 
+def parse_gemini_github_analysis(analysis_text):
+    """
+    Parse the Gemini analysis text to extract frontend and backend scores
+    """
+    if not analysis_text:
+        return None, None
+    
+    try:
+        frontend_match = re.search(r"Frontend Score:\s*(\d+)", analysis_text)
+        backend_match = re.search(r"Backend Score:\s*(\d+)", analysis_text)
+        
+        frontend_score = int(frontend_match.group(1)) if frontend_match else None
+        backend_score = int(backend_match.group(1)) if backend_match else None
+        
+        return frontend_score, backend_score
+    except Exception as e:
+        print(f"[ERROR] Error parsing Gemini analysis: {str(e)}")
+        return None, None
+    
 def evaluate_github_user(username):
-    github_information = collect_github_information(username)
-    if not github_information:
-        return "Could not fetch GitHub data."
-    
-    gemini_response = get_gemini_analysis(github_information)
-    
-    return {
-        "github_information": github_information,
-        "gemini_analysis": gemini_response
-    }
+    try:
+        github_information = collect_github_information(username)
+        if not github_information:
+            return {"error": "Could not fetch GitHub data."}
+        
+        gemini_analysis = get_gemini_analysis(github_information)
+        gemini_frontend, gemini_backend = parse_gemini_github_analysis(gemini_analysis)
+        
+        return {
+            "github_information": github_information,
+            "gemini_analysis": gemini_analysis,
+            "gemini_frontend_score": gemini_frontend,
+            "gemini_backend_score": gemini_backend
+        }
+    except Exception as e:
+        print(f"[ERROR] Error in evaluate_github_user: {str(e)}")
+        return {"error": str(e)}
 
 def analyze_github(github_link):
     """
@@ -359,6 +245,12 @@ def analyze_github(github_link):
         print(f"\n[DEBUG] Starting GitHub analysis for link: {github_link}")
         username = extract_username(github_link)
         print(f"[DEBUG] Extracted username: {username}")
+
+        ai_evaluation = evaluate_github_user(username)
+        if "error" in ai_evaluation:
+            print(f"[ERROR] AI evaluation failed: {ai_evaluation['error']}")
+        else:
+            print(f"[DEBUG] AI evaluation successful")
         
         user_data = get_user_repos(username, num_repos=5)
         print("[DEBUG] Retrieved user data from GitHub API")
@@ -373,9 +265,7 @@ def analyze_github(github_link):
         frontend_points = 0.0
         backend_points = 0.0
         
-        print(json.dumps(evaluate_github_user(extract_username(github_link)), indent=2))
         # Define language mappings for byte-based evaluation.
-        # Note: 'javascript' will be treated specially.
         frontend_languages = {"html", "css", "typescript"}
         backend_languages = {"python", "ruby", "java", "php", "c#", "go", "c++", "c", "rust", "nodejs", "node"}
         
@@ -479,6 +369,20 @@ def analyze_github(github_link):
         
         print(f"[DEBUG] Final normalized scores - Frontend: {frontend_score}, Backend: {backend_score}")
         
+        if "gemini_frontend_score" in ai_evaluation and ai_evaluation["gemini_frontend_score"] is not None:
+            gemini_frontend = ai_evaluation["gemini_frontend_score"]
+            gemini_backend = ai_evaluation["gemini_backend_score"]
+            
+            # Combine scores: 60% Gemini, 40% algorithmic
+            frontend_score = (gemini_frontend * 0.6) + (frontend_score * 0.4)
+            backend_score = (gemini_backend * 0.6) + (backend_score * 0.4)
+
+            print(f"[DEBUG] Gemini scores - Frontend: {gemini_frontend}, Backend: {gemini_backend}")
+            
+            print(f"[DEBUG] Combined with Gemini scores - Frontend: {frontend_score}, Backend: {backend_score}")
+        
+        print(f"[DEBUG] GitHub Analysis - Frontend: {frontend_score}, Backend: {backend_score}")
+        
         return {
             "backend_score": round(backend_score, 2),
             "frontend_score": round(frontend_score, 2),
@@ -492,26 +396,3 @@ def analyze_github(github_link):
     except Exception as e:
         print(f"[ERROR] Exception in analyze_github: {str(e)}")
         return {"error": str(e)}
-
-def combined_analysis(resume_file: str, github_url: str, weight_github: int = 2, weight_resume: int = 1):
-    username = extract_username(github_url)
-    
-    rank = get_github_rank(username)
-    print(f"[DEBUG] GitHub rank for {username}: {rank}")
-    
-    resume_results = analyze_resume(resume_file)
-    github_results = analyze_github(github_url)
-    
-    final_frontend = (github_results["frontend_score"] * weight_github + resume_results["frontend_score"] * weight_resume) / (weight_github + weight_resume)
-    final_backend = (github_results["backend_score"] * weight_github + resume_results["backend_score"] * weight_resume) / (weight_github + weight_resume)
-    
-    print("Combined Final Scores")
-    print(f"Combined Frontend Score: {final_frontend:.1f}/100")
-    print(f"Combined Backend Score: {final_backend:.1f}/100")
-  
-    return {"final_frontend": final_frontend, "final_backend": final_backend}
-
-# # Debug
-# if __name__ == "__main__":
-#     scores = combined_analysis("ml-models/Resume_varnika.pdf", "https://github.com/CLONER786")
-#     print(scores)
