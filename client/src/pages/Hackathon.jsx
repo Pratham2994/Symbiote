@@ -262,10 +262,10 @@ const Hackathon = () => {
 
     // Function to classify scores into skill levels
     const classifyScore = (score) => {
-        if (score >= 80) return { level: 'Excellent', color: 'text-emerald-400' };
-        if (score >= 65) return { level: 'Above Average', color: 'text-blue-400' };
-        if (score >= 40) return { level: 'Average', color: 'text-yellow-400' };
-        if (score >= 25) return { level: 'Weak', color: 'text-orange-400' };
+        if (score >= 80) return { level: 'Expert', color: 'text-emerald-400' };
+        if (score >= 65) return { level: 'Proficient', color: 'text-blue-400' };
+        if (score >= 40) return { level: 'Intermediate', color: 'text-yellow-400' };
+        if (score >= 25) return { level: 'Amateur', color: 'text-orange-400' };
         return { level: 'Beginner', color: 'text-red-400' };
     };
 
