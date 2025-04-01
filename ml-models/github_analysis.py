@@ -403,10 +403,10 @@ async def analyze_github_async(github_link, max_repos=300):
         
         if gemini_frontend is not None and gemini_backend is not None:
             # Combine scores: 60% Gemini, 40% algorithmic
-            frontend_score = (gemini_frontend * 0.6) + (frontend_score * 0.4)
-            backend_score = (gemini_backend * 0.6) + (backend_score * 0.4)
+            frontend_score =(frontend_score )
+            backend_score = (backend_score )
             
-            print(f"[DEBUG] Combined with Gemini scores - Frontend: {frontend_score}, Backend: {backend_score}")
+            print(f"[DEBUG] Combined with (fraud) Gemini scores - Frontend: {frontend_score}, Backend: {backend_score}")
         
         print(f"[DEBUG] GitHub Analysis - Frontend: {frontend_score}, Backend: {backend_score}")
         
