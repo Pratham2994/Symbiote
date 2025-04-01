@@ -10,7 +10,7 @@ import math
 from collections import Counter
 from datetime import datetime, timezone
 from dotenv import load_dotenv
-from google import genai
+import google.generativeai as genai
 
 import PyPDF2
 import docx
@@ -23,9 +23,9 @@ load_dotenv()
 GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
 HEADERS = {"Authorization": f"Bearer {GITHUB_TOKEN}"}
 
-api_key = os.getenv("GEMINI_API_KEY")
-client = genai.Client(api_key=api_key)
 
+api_key = os.getenv("GEMINI_API_KEY")
+genai.configure(api_key=api_key)
 
 def analyze_with_gemini(resume_file_path):
     try:
@@ -45,12 +45,11 @@ def analyze_with_gemini(resume_file_path):
         {resume_text}
         """
 
-
-        response = client.models.generate_content(
-            model="gemini-2.0-flash",  
-            contents=prompt
+        response = genai.generate_text(
+            model="gemini-2.0-flash",
+            prompt=prompt
         )
-        
+
         if response and response.text:
             gemini_result = response.text  
             print(f"[DEBUG] Gemini Response: {gemini_result}")
