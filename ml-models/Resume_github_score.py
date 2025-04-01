@@ -8,7 +8,8 @@ import requests
 from collections import Counter
 from datetime import datetime, timezone
 from dotenv import load_dotenv
-import google.generativeai as genai
+from google import genai
+
 
 import PyPDF2
 import docx
@@ -22,7 +23,7 @@ GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
 HEADERS = {"Authorization": f"Bearer {GITHUB_TOKEN}"}
 
 api_key = os.getenv("GEMINI_API_KEY")
-genai.configure(api_key=api_key)
+client = genai.Client(api_key=api_key)
 
 def analyze_with_gemini(resume_file_path):
     """
@@ -30,35 +31,48 @@ def analyze_with_gemini(resume_file_path):
     """
     try:
         resume_text = extract_text(resume_file_path)
+
         prompt = f"""
-Analyze the following resume text and provide honest scores for both Frontend and Backend skills based on the demonstrated experience, technologies, tools, methodologies, and knowledge related to each area. The scores should be on a scale of 1 to 100, where:
+        Analyze the following resume text and critically assess the candidate's proficiency in both Frontend and Backend development based on their demonstrated experience, technologies, projects, and methodologies. 
 
-- Frontend Score: Reflects the candidate's skills and experience in frontend development, including but not limited to any programming languages, libraries, frameworks, UI/UX principles, responsive design, client-side development practices, and web design patterns.
-- Backend Score: Reflects the candidate's skills and experience in backend development, including but not limited to any server-side languages, frameworks, databases, cloud technologies, APIs, microservices, architecture patterns, and development methodologies.
+        ### **Scoring Criteria:**  
+        - **Frontend Score (1-100)**: Evaluate based on **depth and variety** of frontend skills, including but not limited to programming languages, libraries, frameworks, UI/UX principles, performance optimization, accessibility, responsive design, and client-side development best practices. Consider both **breadth (diverse skills)** and **depth (expert-level proficiency in specific areas)**.  
+        - **Backend Score (1-100)**: Evaluate based on **depth and variety** of backend skills, including but not limited to programming languages, databases, cloud infrastructure, API development, authentication, security practices, performance optimization, and system architecture. Consider both **practical implementation experience** and **advanced knowledge of backend systems**.
 
-Return **only** the scores for Frontend and Backend in the following format, with no additional explanation or text:
-Frontend Score: <score>
-Backend Score: <score>
+        ### **Important Evaluation Notes:**  
+        - **Do not assume proficiency** based on keyword presence alone. Consider the **quality and depth of experience** mentioned.  
+        - Assign **realistic scores**: A **junior-level candidate** should not score near 100, and even experienced professionals should have reasonable gaps.  
+        - Be **objective and critical** rather than overly generous.  
+        - If there is **little or no evidence** of experience in a category, assign a low score.  
 
-Resume text: 
-{resume_text}
-"""
-        gemini_result = ""
-        if hasattr(genai, "generate"):
-            response = genai.generate(model="gemini-2.0-flash", prompt=prompt)
-            if response and "text" in response:
-                gemini_result = response["text"]
+        ### **Output Format (No extra text, only scores):**  
+        Frontend Score: <score>  
+        Backend Score: <score>  
+
+        ### **Resume Text:**  
+        {resume_text}
+        """
+
+        response = client.models.generate_content(
+            model="gemini-2.0-flash",  
+            contents=prompt
+        )
+        
+        if response and response.text:
+            gemini_result = response.text  
+            print(f"[DEBUG] Gemini Response: {gemini_result}")
+            
+            gemini_frontend_score = extract_score(gemini_result, "frontend")
+            gemini_backend_score = extract_score(gemini_result, "backend")
+            
+            return gemini_frontend_score, gemini_backend_score
         else:
-            print("[ERROR] No valid generativeai method found.")
+            print("[ERROR] Failed to get valid response from Gemini.")
             return 0, 0
-
-        print(f"[DEBUG] Gemini Response: {gemini_result}")
-        gemini_frontend_score = extract_score(gemini_result, "frontend")
-        gemini_backend_score = extract_score(gemini_result, "backend")
-        return gemini_frontend_score, gemini_backend_score
     except Exception as e:
         print(f"[ERROR] Error analyzing with Gemini: {str(e)}")
         return 0, 0
+
 
 def extract_score(result, score_type):
     """
@@ -77,7 +91,7 @@ def extract_score(result, score_type):
         print(f"[ERROR] Error extracting score: {str(e)}")
         return 0
 
-# Keywords for resume analysis
+
 FRONTEND_KEYWORDS = {
     "html", "css", "javascript", "react", "angular", "vue", "jquery", "bootstrap",
     "sass", "less", "tailwind", "ember", "backbone", "responsive", "ux", "ui",
