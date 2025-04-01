@@ -6,6 +6,7 @@ const connectDB = require('./config/config');
 const authRoutes = require('./routes/authRoutes');
 const competitionRoutes = require('./routes/competitionRoutes');
 const teamRoutes = require('./routes/teamRoutes');
+const githubRankRoutes = require('./routes/githubRankRoutes');
 const path = require('path');
 
 
@@ -41,6 +42,7 @@ connectDB();
 
 // API Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/github', githubRankRoutes);
 
 // Start Server
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
