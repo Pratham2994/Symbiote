@@ -32,30 +32,21 @@ async function getGitHubStats(username) {
     const prsMergedPercentage = prs > 0 ? (prsMerged / prs) * 100 : 0;
 
     // Stars approximation (using followers count here)
-    const stars = data.followers;
+    const stars = reposData.data.reduce((acc, repo) => acc + repo.stargazers_count, 0);
 
     // Contributions (total contributions)
     const contribs = data.public_repos * 10; // Approximation based on number of repos and an arbitrary multiplier for contributions
 
-    return {
-      all_commits: true, // Adjust if needed
-      commits,
-      prs,
-      issues,
-      reviews,
-      discussionsStarted,
-      discussionsAnswered,
-      prsMerged,
-      prsMergedPercentage,
-      stars,
-      contribs,
-      repos: data.public_repos,
-      followers: data.followers,
-      bio: data.bio,
-      location: data.location,
-      company: data.company,
-      public_repos: data.public_repos,
-    };
+    const rankData = {
+        all_commits: true, // Adjust if needed
+        commits: stats.commits,
+        prs: stats.prs,
+        issues: stats.issues,
+        reviews: stats.reviews,
+        repos: stats.public_repos,
+        stars: stats.stars,
+        followers: stats.followers
+      };
   } catch (error) {
     console.error(error);
     return null;
@@ -71,7 +62,7 @@ app.get("/rank/:username", async (req, res) => {
     return res.status(500).json({ error: "Failed to fetch GitHub stats" });
   }
 
-  const rank = calculateRank(stats);
+  const rank = calculateRank(rankData);
 
   // Returning rank along with all user details
   res.json({
