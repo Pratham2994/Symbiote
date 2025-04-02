@@ -297,7 +297,7 @@ export default function Hackathons() {
                                 transition={{ duration: 0.5, delay: index * 0.1 }}
                                 onClick={() => {
                                     fetchHackathonById(comp._id);
-                                    navigate(`/dashboard/hackathon/${comp._id}`);
+                                    navigate(`/dashboard/hackathons/${comp._id}`);
                                 }}
                                 className="flex flex-row mb-6 p-4 bg-gradient-to-br from-symbiote-purple/10 to-venom-purple/5 backdrop-blur-sm border border-venom-purple/20 rounded-xl hover:border-venom-purple/60 hover:shadow-neon-lg transition-all cursor-pointer group"
                             >

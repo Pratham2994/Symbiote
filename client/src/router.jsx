@@ -9,6 +9,7 @@ import Friends from "./pages/Friends";
 import Profile from "./pages/Profile";
 import Notifications from "./pages/Notifications";
 import ErrorPage from "./pages/ErrorPage";
+import Team from "./pages/Team";
 
 const router = createBrowserRouter([
   {
@@ -21,8 +22,9 @@ const router = createBrowserRouter([
     children: [
       { index: true, element: <Dashboard /> },
       { path: "hackathons", element: <Hackathons /> },
-      { path: "hackathon/:id", element: <Hackathon /> },
+      { path: "hackathons/:id", element: <Hackathon /> },
       { path: "teams", element: <Teams /> },
+      { path: "teams/:teamId", element: <Team /> },
       { path: "friends", element: <Friends /> },
       { path: "profile", element: <Profile /> },
       { path: "notifications", element: <Notifications /> },

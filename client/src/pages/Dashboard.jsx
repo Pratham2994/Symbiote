@@ -117,7 +117,7 @@ export default function Dashboard() {
                   key={competition._id}
                   onClick={() => {
                     fetchHackathonById(competition._id);
-                    navigate(`/dashboard/hackathon/${competition._id}`);
+                    navigate(`/dashboard/hackathons/${competition._id}`);
                   }}
                   className="p-6 rounded-xl bg-gradient-to-br from-symbiote-purple/10 to-venom-purple/5 backdrop-blur-sm border border-venom-purple/20 hover:border-venom-purple/40 hover:shadow-neon group cursor-pointer transition-all"
                   whileHover={cardHover}
