@@ -4,26 +4,29 @@ import router from "./router";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { HackathonProvider } from "./context/HackathonContext";
+import { TeamProvider } from "./context/TeamContext";
 import { toastStyles } from "./utils/animations";
 
 function App() {
   return (
     <AuthProvider>
       <HackathonProvider>
-        <style>{toastStyles}</style>
-        <RouterProvider router={router} />
-        <ToastContainer
-        position="top-right"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="dark"
-      />
+        <TeamProvider>
+          <style>{toastStyles}</style>
+          <RouterProvider router={router} />
+          <ToastContainer
+            position="top-right"
+            autoClose={3000}
+            hideProgressBar={false}
+            newestOnTop
+            closeOnClick
+            rtl={false}
+            pauseOnFocusLoss
+            draggable
+            pauseOnHover
+            theme="dark"
+          />
+        </TeamProvider>
       </HackathonProvider>
     </AuthProvider>
   );
