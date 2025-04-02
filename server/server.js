@@ -6,8 +6,10 @@ const connectDB = require('./config/config');
 const authRoutes = require('./routes/authRoutes');
 const competitionRoutes = require('./routes/competitionRoutes');
 const teamRoutes = require('./routes/teamRoutes');
+const searchForFriendRoutes = require('./routes/searchForFriendRoutes');
 const githubRankRoutes = require('./routes/githubRankRoutes');
 const path = require('path');
+
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const swaggerJsDoc = require('swagger-jsdoc');
@@ -124,6 +126,7 @@ app.use('/api/competitions', competitionRoutes);
 app.use('/api/teams', teamRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/github', githubRankRoutes);
+app.use('/api/searchForFriends', searchForFriendRoutes);
 
 // Connect MongoDB
 connectDB();
