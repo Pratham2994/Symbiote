@@ -3,7 +3,7 @@ const router = express.Router();
 const { protect } = require('../middleware/authMiddlewareStudent');
 const { createTeam } = require('../controller/createTeamController');
 const {getTeamsByUserAndCompetition} = require('../controller/viewTeamController');
-const {getUserTeams} = require('../controller/getTeamsController')
+const {getUserTeams, getOneTeam} = require('../controller/getTeamsController')
 
 /**
  * @swagger
@@ -26,8 +26,8 @@ const {getUserTeams} = require('../controller/getTeamsController')
  *       500:
  *         description: Server error
  */
-router.get('/myteams/:userId', getUserTeams);
-router.get('/:teamId', getUserTeams);
+router.get('/myteams/:userId', protect, getUserTeams);
+router.get('/:teamId', protect, getOneTeam);
 /**
  * @swagger
  * /api/teams/create:
@@ -45,7 +45,6 @@ router.get('/:teamId', getUserTeams);
  *         description: Unauthorized
  */
 router.post('/create', protect, createTeam);
-// router.get('/:id', getTeamData) todo
 
 /**
  * @swagger
