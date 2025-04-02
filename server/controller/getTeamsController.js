@@ -8,7 +8,11 @@ const getUserTeams = async (req, res) => {
             return res.status(400).json({ error: 'User ID is required' });
         }
 
-        const teams = await Team.find({ members: userId }).populate('members');
+        const teams = await Team.find({ members: userId })
+            .populate('members')
+            .populate('createdBy')
+            .populate('competition')
+            .sort({createdAt: -1});
 
         return res.status(200).json(teams);
     } catch (err) {
@@ -24,6 +28,10 @@ const getOneTeam = async(req, res) =>{
             return res.status(400).json({ error: 'User ID is required' });
         }
         const team = await Team.findById(teamId)
+            .populate('members')
+            .populate('createdBy')
+            .populate('competition');
+
         return res.status(200).json({team})
     }
     catch(err){
