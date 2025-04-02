@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { Search, Users, Trophy, Star, ChevronDown, Plus, Calendar, User } from "lucide-react";
-import { Listbox } from "@headlessui/react";
+import { Users, Trophy, Calendar, User, Search, Clock } from "lucide-react";
 import UserNavbar from "../components/UserNavbar";
-import { cardHover } from "../utils/animations";
 import { useTeam } from "../context/TeamContext";
 import { useAuth } from "../context/AuthContext";
 
@@ -13,7 +11,6 @@ const Teams = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedFilter, setSelectedFilter] = useState("all");
 
   useEffect(() => {
     if (user?._id) {
@@ -21,50 +18,8 @@ const Teams = () => {
     }
   }, [user?._id, fetchTeams]);
 
-  const handleCreateTeam = async () => {
-    try {
-      const response = await fetch('http://localhost:5000/api/teams', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          name: `${user.username}'s Team`,
-          createdBy: user._id,
-          members: [user._id],
-          skills: []
-        })
-      });
-
-      const data = await response.json();
-      if (data.team) {
-        await fetchTeamById(data.team._id);
-        navigate(`/dashboard/teams/${data.team._id}`);
-      }
-    } catch (err) {
-      console.error('Error creating team:', err);
-    }
-  };
-
-  const filters = [
-    { id: "all", name: "All Teams" },
-    { id: "myTeams", name: "My Teams" },
-    { id: "available", name: "Available Teams" },
-  ];
-
-  const filteredTeams = teams?.filter((team) => {
-    const matchesSearch = team?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      team?.competition?.title?.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    if (selectedFilter === "all") return matchesSearch;
-    if (selectedFilter === "myTeams") return matchesSearch && team?.members?.some(member => member?._id === user?._id);
-    if (selectedFilter === "available") return matchesSearch && team?.members?.length < team?.competition?.maxTeamSize;
-    
-    return matchesSearch;
-  }) || [];
-
-  const handleTeamClick = async (teamId) => {
+  const handleTeamClick = async (teamId, isActive) => {
+    if (!isActive) return; // Only navigate if team is active
     try {
       await fetchTeamById(teamId);
       navigate(`/dashboard/teams/${teamId}`);
@@ -72,6 +27,124 @@ const Teams = () => {
       console.error('Error fetching team:', err);
     }
   };
+
+  const handleCompetitionClick = (e, competitionId) => {
+    e.stopPropagation();
+    if (competitionId) {
+      navigate(`/dashboard/hackathons/${competitionId}`);
+    }
+  };
+
+  const currentDate = new Date();
+  
+  const filteredTeams = teams.filter(team => 
+    team.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    team.competition?.title?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const activeTeams = filteredTeams.filter(team => {
+    const startDate = team.competition?.competitionStartDate ? new Date(team.competition.competitionStartDate) : null;
+    return startDate && startDate >= currentDate;
+  });
+
+  const pastTeams = filteredTeams.filter(team => {
+    const startDate = team.competition?.competitionStartDate ? new Date(team.competition.competitionStartDate) : null;
+    return !startDate || startDate < currentDate;
+  });
+
+  const TeamCard = ({ team, isActive }) => (
+    <motion.div
+      key={team._id}
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      whileHover={isActive ? { 
+        scale: 1.02,
+        boxShadow: "0 0 25px rgba(147, 51, 234, 0.3)",
+        transition: { duration: 0, scale: { duration: 0 }, boxShadow: { duration: 0 } }
+      } : {}}
+      onClick={() => handleTeamClick(team._id, isActive)}
+      className={`p-6 rounded-xl bg-gradient-to-br ${
+        isActive 
+          ? "from-symbiote-purple/10 to-venom-purple/5 cursor-pointer" 
+          : "from-gray-800/10 to-gray-900/5 opacity-75"
+      } backdrop-blur-sm border border-venom-purple/20 transition-all duration-[50ms] hover:border-venom-purple/40`}
+    >
+      <div className="flex flex-col h-full">
+        {/* Team Header */}
+        <div className="flex justify-between items-start mb-4">
+          <div>
+            <h3 className={`text-xl font-semibold ${
+              isActive 
+                ? "bg-gradient-to-r from-ghost-lilac to-venom-purple" 
+                : "bg-gradient-to-r from-gray-400 to-gray-500"
+              } bg-clip-text text-transparent`}>
+              {team.name}
+            </h3>
+          </div>
+          <div className="flex items-center gap-2 px-3 py-1 bg-venom-purple/20 rounded-full">
+            <Users size={16} className={isActive ? "text-venom-purple" : "text-gray-500"} />
+            <span className="text-sm">{team.members?.length || 0}/{team.competition?.maxTeamSize || 4}</span>
+          </div>
+        </div>
+
+        {/* Team Details */}
+        <div className="flex-1 space-y-4">
+          {/* Competition Info */}
+          <motion.button
+            onClick={(e) => isActive ? handleCompetitionClick(e, team.competition?._id) : e.preventDefault()}
+            whileHover={isActive ? { 
+              scale: 1.02,
+              backgroundColor: "rgba(147, 51, 234, 0.15)",
+              transition: { duration: 0 }
+            } : {}}
+            className={`flex items-center gap-2 px-0 py-2 rounded-lg w-full group transition-all duration-[50ms] ${
+              isActive ? "hover:border-venom-purple/40 cursor-pointer" : "cursor-default"
+            }`}
+          >
+            <Trophy size={16} className={`${isActive ? "text-venom-purple group-hover:text-symbiote-purple" : "text-gray-500"} transition-colors`} />
+            <span className={`text-sm ${isActive ? "text-ghost-lilac/70 group-hover:text-ghost-lilac" : "text-gray-500"} transition-colors`}>
+              {team.competition?.title || 'No competition'}
+            </span>
+          </motion.button>
+
+          {/* Skills */}
+          {team.skills && team.skills.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {team.skills.map((skill, index) => (
+                <span
+                  key={index}
+                  className={`inline-flex px-3 py-1 text-xs ${
+                    isActive 
+                      ? "bg-venom-purple/20 text-ghost-lilac/80 hover:bg-venom-purple/30" 
+                      : "bg-gray-700/20 text-gray-400"
+                  } rounded-full transition-colors`}
+                >
+                  {skill}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Team Status */}
+          <div className="flex items-center justify-between text-sm pt-4 border-t border-venom-purple/20">
+            <div className="flex items-center gap-2">
+              <Calendar size={16} className={isActive ? "text-venom-purple" : "text-gray-500"} />
+              <span className="text-ghost-lilac/70">
+                {new Date(team.createdAt).toLocaleDateString()}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <User size={16} className={isActive ? "text-venom-purple" : "text-gray-500"} />
+              <span className="text-ghost-lilac/70">
+                {team.createdBy?.username || 'Unknown'}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
 
   return (
     <div className="min-h-screen bg-[#0B0B0B] text-ghost-lilac">
@@ -84,120 +157,73 @@ const Teams = () => {
           transition={{ duration: 0.5 }}
           className="space-y-8"
         >
-          {/* Header */}
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <div>
-              <h1 className="text-4xl font-bold mb-2">
-                <span className="bg-gradient-to-r from-venom-purple to-symbiote-purple bg-clip-text text-transparent">
-                  Teams
-                </span>
-              </h1>
-              <p className="text-ghost-lilac/70">Find and join teams for your next hackathon</p>
-            </div>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={handleCreateTeam}
-              className="flex items-center gap-2 px-6 py-3 bg-venom-purple/20 border border-venom-purple/30 rounded-lg hover:bg-venom-purple/30 transition-colors"
+          {/* Header and Search */}
+          <div className="space-y-6">
+            <motion.h1 
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="text-4xl font-bold"
             >
-              <Plus size={20} />
-              Create Team
-            </motion.button>
-          </div>
+              <span className="bg-gradient-to-r from-venom-purple to-symbiote-purple bg-clip-text text-transparent">
+                My Teams
+              </span>
+            </motion.h1>
 
-          {/* Filters */}
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
+            <div className="relative">
+              <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+                <Search className="h-5 w-5 text-ghost-lilac/50" />
+              </div>
               <input
                 type="text"
                 placeholder="Search teams..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-4 py-2 bg-void-black/50 border border-venom-purple/30 rounded-lg focus:outline-none focus:border-venom-purple"
+                className="w-full pl-12 pr-4 py-3 bg-void-black/50 border border-venom-purple/30 rounded-xl focus:outline-none focus:border-venom-purple focus:ring-2 focus:ring-venom-purple/20 transition-all duration-300"
               />
             </div>
-            <div className="flex gap-2">
-              {filters.map((filter) => (
-                <motion.button
-                  key={filter.value}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setSelectedFilter(filter.value)}
-                  className={`px-4 py-2 rounded-lg transition-colors ${
-                    selectedFilter === filter.value
-                      ? 'bg-venom-purple text-ghost-lilac'
-                      : 'bg-void-black/50 text-ghost-lilac/70 hover:bg-void-black/70'
-                  }`}
-                >
-                  {filter.name}
-                </motion.button>
-              ))}
+          </div>
+
+          {/* Active Teams Section */}
+          <div className="space-y-6">
+            <div className="flex items-center gap-2">
+              <Clock className="text-venom-purple" size={20} />
+              <h2 className="text-xl font-semibold text-ghost-lilac">Active Teams</h2>
             </div>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className="grid grid-cols-1 md:grid-cols-2 gap-6"
+            >
+              <AnimatePresence>
+                {activeTeams.map((team) => (
+                  <TeamCard key={team._id} team={team} isActive={true} />
+                ))}
+              </AnimatePresence>
+            </motion.div>
           </div>
 
-          {/* Teams Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {filteredTeams.map((team) => (
-              <motion.div
-                key={team._id}
-                whileHover={{ scale: 1.02 }}
-                onClick={() => handleTeamClick(team._id)}
-                className="p-6 rounded-xl bg-gradient-to-br from-symbiote-purple/10 to-venom-purple/5 backdrop-blur-sm border border-venom-purple/20 cursor-pointer"
+          {/* Past Teams Section */}
+          {pastTeams.length > 0 && (
+            <div className="space-y-6">
+              <div className="flex items-center gap-2 pt-8 border-t border-venom-purple/20">
+                <Clock className="text-gray-500" size={20} />
+                <h2 className="text-xl font-semibold text-ghost-lilac/70">Past Teams</h2>
+              </div>
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.2 }}
+                className="grid grid-cols-1 md:grid-cols-2 gap-6"
               >
-                <div className="flex flex-col h-full">
-                  {/* Team Header */}
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h3 className="text-xl font-semibold">{team.name}</h3>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Users size={16} className="text-venom-purple" />
-                      <span className="text-sm">{team.members?.length || 0}/{team.competition?.maxTeamSize || 4}</span>
-                    </div>
-                  </div>
-
-                  {/* Team Details */}
-                  <div className="flex-1 space-y-4">
-                    {/* Competition Info */}
-                    <div className="flex items-center gap-2">
-                      <Trophy size={16} className="text-venom-purple" />
-                      <span className="text-sm">{team.competition?.title || 'No competition'}</span>
-                    </div>
-
-                    {/* Skills */}
-                    {team.skills && team.skills.length > 0 && (
-                      <div className="flex flex-wrap gap-2">
-                        {team.skills.map((skill, index) => (
-                          <span
-                            key={index}
-                            className="inline-flex px-2 py-1 text-xs bg-venom-purple/20 rounded-full text-ghost-lilac/80"
-                          >
-                            {skill}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Team Status */}
-                    <div className="flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-2">
-                        <Calendar size={16} className="text-venom-purple" />
-                        <span className="text-ghost-lilac/70">
-                          Created {new Date(team.createdAt).toLocaleDateString()}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <User size={16} className="text-venom-purple" />
-                        <span className="text-ghost-lilac/70">
-                          by {team.createdBy?.username || 'Unknown'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <AnimatePresence>
+                  {pastTeams.map((team) => (
+                    <TeamCard key={team._id} team={team} isActive={false} />
+                  ))}
+                </AnimatePresence>
               </motion.div>
-            ))}
-          </div>
+            </div>
+          )}
         </motion.div>
       </main>
     </div>
