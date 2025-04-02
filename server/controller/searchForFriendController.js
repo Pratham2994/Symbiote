@@ -37,6 +37,56 @@ const searchFriendbyUsername = async (req, res) => {
     }
 };
 
+const getAllFriends = async (req, res) => {
+    try {
+        const { userId } = req.body;
+
+        // Check if userId is provided
+        if (!userId) {
+            return res.status(400).json({
+                success: false,
+                message: 'User ID is required'
+            });
+        }
+
+        // Find the user and populate the friends field
+        const user = await User.findById(userId).populate('friends');
+
+        // Check if the user exists
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+
+        // Check if the user has friends
+        if (!user.friends || user.friends.length === 0) {
+            return res.status(200).json({
+                success: true,
+                message: 'No friends found',
+                friends: []
+            });
+        }
+
+        // Map the friends array to extract relevant details
+        const friends = user.friends;
+
+        return res.status(200).json({
+            success: true,
+            message: 'Friends retrieved successfully',
+            friends
+        });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({
+            success: false,
+            message: 'Internal server error',
+            error: err.message
+        });
+    }
+};
 module.exports = {
-    searchFriendbyUsername
+    searchFriendbyUsername,
+    getAllFriends
 };
