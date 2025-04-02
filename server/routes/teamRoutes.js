@@ -7,7 +7,7 @@ const {getAllTeams} = require('../controller/getTeamsController')
 
 /**
  * @swagger
- * /api/teams/user/{userId}:
+ * /api/teams/{userId}:
  *   get:
  *     summary: Get all teams for a user
  *     tags: [Teams]
@@ -26,7 +26,7 @@ const {getAllTeams} = require('../controller/getTeamsController')
  *       500:
  *         description: Server error
  */
-router.get('/user/:userId', getAllTeams);
+router.get('/:userId', getAllTeams);
 
 /**
  * @swagger
