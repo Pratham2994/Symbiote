@@ -4,7 +4,7 @@ const User = require('../models/User');
 const sendFriendRequest = async (req, res) => {
     try {
         const { toUsername } = req.body;
-        const fromUserId = req.user._id; // This comes from the auth middleware
+        const fromUserId = req.user._id;
 
         if (!toUsername) {
             return res.status(400).json({
@@ -57,7 +57,56 @@ const sendFriendRequest = async (req, res) => {
             message: 'Friend request sent successfully',
             friendRequest
         });
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: 'Internal server error',
+            error: error.message
+        });
+    }
+};
 
+const acceptFriendRequest = async (req, res) => {
+    try {
+        const { requestId, recipientId } = req.body;
+
+        if (!requestId || !recipientId) {
+            return res.status(400).json({
+                success: false,
+                message: 'requestId and recipientId are required'
+            });
+        }
+
+        // Find the friend request by its ID
+        const friendRequest = await FriendRequest.findById(requestId);
+        if (!friendRequest) {
+            return res.status(404).json({
+                success: false,
+                message: 'Friend request not found'
+            });
+        }
+
+        // Verify that the recipient is the one who received the friend request
+        if (friendRequest.to.toString() !== recipientId) {
+            return res.status(403).json({
+                success: false,
+                message: 'You are not authorized to accept this friend request'
+            });
+        }
+
+        // Update the friend request status to Accepted
+        friendRequest.status = 'Accepted';
+        await friendRequest.save();
+
+        // Update both users' friends arrays
+        await User.findByIdAndUpdate(friendRequest.from, { $push: { friends: friendRequest.to } });
+        await User.findByIdAndUpdate(friendRequest.to, { $push: { friends: friendRequest.from } });
+
+        return res.status(200).json({
+            success: true,
+            message: 'Friend request accepted successfully',
+            friendRequest
+        });
     } catch (error) {
         return res.status(500).json({
             success: false,
@@ -68,5 +117,6 @@ const sendFriendRequest = async (req, res) => {
 };
 
 module.exports = {
-    sendFriendRequest
-}; 
+    sendFriendRequest,
+    acceptFriendRequest
+};
