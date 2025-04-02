@@ -2,14 +2,13 @@ const Team = require('../models/Team')
 
 const getAllTeams = async (req, res) => {
     try {
-        const { _id } = req.body;
+        const { userId } = req.params;
 
-        if (!_id) {
+        if (!userId) {
             return res.status(400).json({ error: 'User ID is required' });
         }
 
-        const teams = await Team.find({ members: _id }).populate('members');
-
+        const teams = await Team.find({ members: userId }).populate('members');
 
         return res.status(200).json(teams);
     } catch (err) {

@@ -7,15 +7,26 @@ const {getAllTeams} = require('../controller/getTeamsController')
 
 /**
  * @swagger
- * /api/teams:
- *   post:
- *     summary: Get all teams
+ * /api/teams/user/{userId}:
+ *   get:
+ *     summary: Get all teams for a user
  *     tags: [Teams]
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the user to get teams for
  *     responses:
  *       200:
- *         description: List of all teams
+ *         description: List of all teams for the user
+ *       400:
+ *         description: User ID is required
+ *       500:
+ *         description: Server error
  */
-router.post('/', getAllTeams);
+router.get('/user/:userId', getAllTeams);
 
 /**
  * @swagger
