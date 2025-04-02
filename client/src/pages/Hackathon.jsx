@@ -508,7 +508,7 @@ const Hackathon = () => {
                                                                 </span>
                                                             </div>
                                                             <div className="flex justify-between items-center">
-                                                                <span className="text-ghost-lilac/60">Team Fit</span>
+                                                                <span className="text-ghost-lilac/60">Chemistry</span>
                                                                 <span className={`font-semibold ${classifyScore(member.eqScore).color}`}>
                                                                     {classifyScore(member.eqScore).level}
                                                                 </span>

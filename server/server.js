@@ -21,6 +21,18 @@ const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 const PORT = process.env.PORT || 5000;
 
+// CORS configuration
+const corsOptions = {
+  origin: ['http://localhost:3000', 'http://localhost:5173'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+  credentials: true,
+  maxAge: 86400 // 24 hours
+};
+
+// Apply CORS before other middleware
+app.use(cors(corsOptions));
+
 // Swagger configuration
 const swaggerOptions = {
   definition: {
@@ -68,10 +80,10 @@ app.use('/api', limiter);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:5173'],
-  credentials: true
-}));
+
+// Handle preflight requests
+app.options('*', cors(corsOptions));
+
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Add better error handling for parsing errors
@@ -107,15 +119,14 @@ wss.on('connection', (ws) => {
   });
 });
 
+// API Routes
 app.use('/api/competitions', competitionRoutes);
 app.use('/api/teams', teamRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/github', githubRankRoutes);
 
 // Connect MongoDB
 connectDB();
-
-// API Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/github', githubRankRoutes);
 
 // Start Server
 server.listen(PORT, () => {
