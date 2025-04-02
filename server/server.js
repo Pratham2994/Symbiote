@@ -8,6 +8,8 @@ const competitionRoutes = require('./routes/competitionRoutes');
 const teamRoutes = require('./routes/teamRoutes');
 const searchForFriendRoutes = require('./routes/searchForFriendRoutes');
 const githubRankRoutes = require('./routes/githubRankRoutes');
+const searchForFriendRoutes = require('./routes/searchForFriendRoutes');
+const friendRequestRoutes = require('./routes/friendRequestRoutes');
 const path = require('path');
 
 const helmet = require('helmet');
@@ -127,6 +129,8 @@ app.use('/api/teams', teamRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/github', githubRankRoutes);
 app.use('/api/searchForFriends', searchForFriendRoutes);
+app.use('/api/searchForFriends', searchForFriendRoutes);
+app.use('/api/friend-requests', friendRequestRoutes);
 
 // Connect MongoDB
 connectDB();
