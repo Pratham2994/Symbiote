@@ -26,8 +26,8 @@ const {getUserTeams} = require('../controller/getTeamsController')
  *       500:
  *         description: Server error
  */
-router.get('/:userId', getUserTeams);
-
+router.get('/myteams/:userId', getUserTeams);
+router.get('/:teamId', getUserTeams);
 /**
  * @swagger
  * /api/teams/create:
