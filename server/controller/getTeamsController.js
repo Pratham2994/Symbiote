@@ -1,6 +1,6 @@
 const Team = require('../models/Team')
 
-const getAllTeams = async (req, res) => {
+const getUserTeams = async (req, res) => {
     try {
         const { userId } = req.params;
 
@@ -17,4 +17,4 @@ const getAllTeams = async (req, res) => {
     }
 };
 
-module.exports = { getAllTeams };
+module.exports = { getUserTeams };

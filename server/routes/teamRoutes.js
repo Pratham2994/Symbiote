@@ -3,7 +3,7 @@ const router = express.Router();
 const { protect } = require('../middleware/authMiddlewareStudent');
 const { createTeam } = require('../controller/createTeamController');
 const {getTeamsByUserAndCompetition} = require('../controller/viewTeamController');
-const {getAllTeams} = require('../controller/getTeamsController')
+const {getUserTeams} = require('../controller/getTeamsController')
 
 /**
  * @swagger
@@ -26,7 +26,7 @@ const {getAllTeams} = require('../controller/getTeamsController')
  *       500:
  *         description: Server error
  */
-router.get('/:userId', getAllTeams);
+router.get('/:userId', getUserTeams);
 
 /**
  * @swagger
