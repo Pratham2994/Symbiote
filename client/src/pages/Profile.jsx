@@ -30,7 +30,7 @@ export default function Profile() {
         }
         
         // Fetch other user's profile
-        const response = await fetch(`http://localhost:5000/api/profile/${userId}`, {
+        const response = await fetch(`http://localhost:5000/api/user/${userId}`, {
           method: "GET",
           headers: { "Content-Type": "application/json" },
           credentials: "include"
