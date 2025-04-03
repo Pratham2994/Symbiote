@@ -130,7 +130,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/github', githubRankRoutes);
 app.use('/api/searchForFriends', searchForFriendRoutes);
 app.use('/api/friend-requests', friendRequestRoutes);
-app.use('/api/profile', userProfileRoutes);
+app.use('/api/user', userProfileRoutes);
 
 // Connect MongoDB
 connectDB();

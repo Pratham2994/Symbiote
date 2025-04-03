@@ -1,3 +1,4 @@
+const FriendRequest = require('../models/FriendRequest');
 const User = require('../models/User')
 
 const getUserProfile = async(req, res) =>{
@@ -22,4 +23,19 @@ const getUserProfile = async(req, res) =>{
     }        
 }
 
-module.exports = {getUserProfile}
+const getUserNotifications = async(req, res)=>{
+    try{
+        const userId = req.user.id
+
+        const friendNoti = await FriendRequest.findOne({to: userId});
+
+        res.status(200).json({
+            friendNoti
+        })
+    }
+    catch(err){
+        console.log(err)
+    }
+}
+
+module.exports = {getUserProfile, getUserNotifications}
