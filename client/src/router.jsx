@@ -27,6 +27,7 @@ const router = createBrowserRouter([
       { path: "teams/:teamId", element: <Team /> },
       { path: "friends", element: <Friends /> },
       { path: "profile", element: <Profile /> },
+      { path: "profile/:userId", element: <Profile /> },
       { path: "notifications", element: <Notifications /> },
     ],
   },

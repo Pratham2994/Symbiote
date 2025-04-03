@@ -73,15 +73,15 @@ export default function UserNavbar() {
               {({ isActive }) => (
                 <>
                   <Bell size={24} />
-                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-venom-purple rounded-full text-xs flex items-center justify-center">
-                    3
-                  </span>
+                  {/* <span className="absolute -top-1 -right-1 w-4 h-4 bg-venom-purple rounded-full text-xs flex items-center justify-center">
+                    
+                  </span> */}
                 </>
               )}
             </NavLink>
             <NavLink
               to="/dashboard/profile"
-              className="text-ghost-lilac/80 hover:text-venom-purple transition-colors"
+              className={({ isActive }) => `text-ghost-lilac/80 hover:text-venom-purple transition-colors ${isActive ? 'text-venom-purple' : ''}`}
             >
               {({ isActive }) => <User size={24} />}
             </NavLink>
