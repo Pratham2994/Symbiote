@@ -3,7 +3,8 @@ const router = express.Router();
 const { protect } = require('../middleware/authMiddlewareStudent');
 const { createTeam } = require('../controller/createTeamController');
 const {getTeamsByUserAndCompetition} = require('../controller/viewTeamController');
-const {joinTeamRequest, handleJoinRequest} = require('../controller/joinAndInviteController')
+const {joinTeamRequest, handleJoinRequest} = require('../controller/joinTeamRequestController')
+const {inviteToTeam, handleTeamInvite} = require('../controller/inviteToTeamController')
 const {getUserTeams, getOneTeam} = require('../controller/getTeamsController')
 
 /**
@@ -61,10 +62,14 @@ router.post('/create', protect, createTeam);
  *       401:
  *         description: Unauthorized
  */
-router.post('/view', protect, getTeamsByUserAndCompetition);
+router.post('/view', protect , getTeamsByUserAndCompetition);
 
-router.post('/joinRequest', joinTeamRequest)
+router.post('/joinRequest', protect , joinTeamRequest)
 
-router.post('/handleRequest', handleJoinRequest)
+router.post('/handleJoinRequest', protect , handleJoinRequest)
+
+router.post('/invite', inviteToTeam)
+
+router.post('/handleTeamInvite', protect , handleTeamInvite)
 
 module.exports = router; 
