@@ -5,7 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import { navbarScroll, navLinkHover } from "../utils/animations";
 import { motion } from "framer-motion";
 import NotificationModal from "./Modals/NotificationModal";
-import axios from 'axios';
+import api from '../utils/api';
 
 export default function UserNavbar() {
   const { logout } = useAuth();
@@ -15,7 +15,7 @@ export default function UserNavbar() {
 
   const fetchUnreadCount = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/notifications');
+      const response = await api.get('/api/notifications');
       if (response.data.success && response.data.data) {
         setUnreadCount(response.data.data.unreadCount || 0);
       }
@@ -89,12 +89,14 @@ export default function UserNavbar() {
             <div className="flex items-center gap-6">
               <button
                 onClick={() => setIsNotificationModalOpen(true)}
-                className="relative text-ghost-lilac/80 hover:text-venom-purple transition-colors"
+                className={`relative text-ghost-lilac/80 hover:text-venom-purple transition-colors ${
+                  isNotificationModalOpen ? 'text-venom-purple' : ''
+                }`}
               >
                 <Bell size={24} />
-                {unreadCount > 0 && (
+                {unreadCount >= 1 && (
                   <span className="absolute -top-1 -right-1 w-4 h-4 bg-venom-purple rounded-full text-xs flex items-center justify-center text-white">
-                    {unreadCount}
+                    {unreadCount > 99 ? '99+' : unreadCount}
                   </span>
                 )}
               </button>

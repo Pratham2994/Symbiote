@@ -5,6 +5,7 @@ import { Users, Trophy, Calendar, User, Search, Clock } from "lucide-react";
 import UserNavbar from "../components/UserNavbar";
 import { useTeam } from "../context/TeamContext";
 import { useAuth } from "../context/AuthContext";
+import { toast } from 'react-toastify';
 
 const Teams = () => {
   const { teams = [], loading, fetchTeamById, fetchTeams } = useTeam();
@@ -14,7 +15,23 @@ const Teams = () => {
 
   useEffect(() => {
     if (user?._id) {
-      fetchTeams();
+      const loadTeams = async () => {
+        try {
+          await fetchTeams();
+        } catch (error) {
+          toast.error('Failed to load teams', {
+            position: "top-right",
+            autoClose: 3000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            progress: undefined,
+            theme: "dark",
+          });
+        }
+      };
+      loadTeams();
     }
   }, [user?._id, fetchTeams]);
 
@@ -25,6 +42,16 @@ const Teams = () => {
       navigate(`/dashboard/teams/${teamId}`);
     } catch (err) {
       console.error('Error fetching team:', err);
+      toast.error('Failed to load team details', {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: "dark",
+      });
     }
   };
 
@@ -32,6 +59,17 @@ const Teams = () => {
     e.stopPropagation();
     if (competitionId) {
       navigate(`/dashboard/hackathons/${competitionId}`);
+    } else {
+      toast.info('No competition associated with this team', {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: "dark",
+      });
     }
   };
 
