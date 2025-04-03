@@ -6,6 +6,7 @@ import "react-toastify/dist/ReactToastify.css";
 import { HackathonProvider } from "./context/HackathonContext";
 import { TeamProvider } from "./context/TeamContext";
 import { toastStyles } from "./utils/animations";
+import { scrollbarStyles } from "./utils/scrollbarStyles";
 
 function App() {
   return (
@@ -13,6 +14,7 @@ function App() {
       <HackathonProvider>
         <TeamProvider>
           <style>{toastStyles}</style>
+          <style>{scrollbarStyles}</style>
           <RouterProvider router={router} />
           <ToastContainer
             position="top-right"
