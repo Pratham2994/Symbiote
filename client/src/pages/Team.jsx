@@ -67,7 +67,7 @@ const Team = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#0B0B0B] text-ghost-lilac">
+    <div className="min-h-screen bg-[#0B0B0B] text-ghost-lilac overflow-x-hidden">
       <div className="absolute inset-0 bg-gradient-to-b from-void-black via-symbiote-purple/20 to-void-black"></div>
       <UserNavbar />
       <main className="pt-24 px-4 md:px-8 max-w-7xl mx-auto relative">
@@ -252,7 +252,7 @@ const Team = () => {
         </motion.div>
       </main>
       <QuickAddModal isOpen={isQuickAddOpen} onClose={() => setIsQuickAddOpen(false)} />
-      <style jsx>{`
+      <style>{`
         .scrollbar-hide {
           -ms-overflow-style: none;  /* IE and Edge */
           scrollbar-width: none;  /* Firefox */

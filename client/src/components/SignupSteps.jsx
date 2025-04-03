@@ -122,6 +122,12 @@ const SignupSteps = ({ email, password, onClose }) => {
     }
   };
 
+  const cleanGitHubUrl = (url) => {
+    if (!url) return '';
+    // Remove trailing slashes and any characters after the username
+    return url.replace(/\/+$/, '').split('/').slice(0, 4).join('/');
+  };
+
   const validateProfile = () => {
     const newErrors = {};
     if (!profile.resume) {
@@ -131,8 +137,14 @@ const SignupSteps = ({ email, password, onClose }) => {
     }
     if (!profile.githubLink) {
       newErrors.githubLink = 'GitHub link is required';
-    } else if (!profile.githubLink.includes('github.com')) {
-      newErrors.githubLink = 'Please enter a valid GitHub URL';
+    } else {
+      const cleanedUrl = cleanGitHubUrl(profile.githubLink);
+      if (!cleanedUrl.includes('github.com')) {
+        newErrors.githubLink = 'Please enter a valid GitHub URL';
+      } else {
+        // Update the profile with the cleaned URL
+        setProfile(prev => ({ ...prev, githubLink: cleanedUrl }));
+      }
     }
     if (selectedSkills.length === 0) {
       newErrors.skills = 'Please select at least one skill';

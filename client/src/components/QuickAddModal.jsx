@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, UserPlus, Search } from 'lucide-react';
 import axios from '../utils/axios';
 import { useAuth } from '../context/AuthContext';
+import { toast } from 'react-toastify';
 
 const QuickAddModal = ({ isOpen, onClose }) => {
   const { user } = useAuth();
@@ -20,7 +21,6 @@ const QuickAddModal = ({ isOpen, onClose }) => {
           userId: user._id,
         });
         
-        // Ensure we have an array of friends
         if (Array.isArray(response.data)) {
           setFriends(response.data);
         } else if (response.data && Array.isArray(response.data.friends)) {
@@ -28,10 +28,30 @@ const QuickAddModal = ({ isOpen, onClose }) => {
         } else {
           console.error("Unexpected response format:", response.data);
           setFriends([]);
+          toast.error('Failed to load friends list', {
+            position: "top-right",
+            autoClose: 3000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            progress: undefined,
+            theme: "dark",
+          });
           setError("Failed to load friends list");
         }
       } catch (error) {
         console.error("Error fetching friends:", error);
+        toast.error(error.response?.data?.message || 'Failed to load friends', {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: "dark",
+        });
         setError(error.response?.data?.message || "Failed to load friends");
         setFriends([]);
       } finally {
@@ -43,6 +63,38 @@ const QuickAddModal = ({ isOpen, onClose }) => {
       fetchFriends();
     }
   }, [isOpen, user?._id]);
+
+  const handleAddFriend = async (friendId) => {
+    try {
+      const response = await axios.post('/friend-requests/send', {
+        toUserId: friendId
+      });
+      
+      if (response.data.success) {
+        toast.success('Friend request sent successfully!', {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: "dark",
+        });
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to send friend request', {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: "dark",
+      });
+    }
+  };
 
   const filteredFriends = friends.filter(friend => 
     friend?.username?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -160,6 +212,7 @@ const QuickAddModal = ({ isOpen, onClose }) => {
                             transition: { duration: 0.05 }
                           }}
                           className="p-2 rounded-full bg-venom-purple/20 border border-venom-purple/30 hover:bg-venom-purple/30 transition-all group-hover:border-venom-purple/40"
+                          onClick={() => handleAddFriend(friend._id)}
                         >
                           <UserPlus size={18} className="text-venom-purple" />
                         </motion.button>

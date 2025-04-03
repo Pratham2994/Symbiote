@@ -6,7 +6,7 @@ const notificationController = {
   // Get all notifications for a user
   getNotifications: async (req, res) => {
     try {
-      const userId = req.user._id; // Assuming user is attached by auth middleware
+      const userId = req.user.id; // Assuming user is attached by auth middleware
 
       // Get all notifications for the user
       const notifications = await Notification.find({ recipient: userId })
@@ -69,19 +69,23 @@ const notificationController = {
     }
   },
 
-  // Mark all notifications as read
+  // Mark all non-action notifications as read
   markAllAsRead: async (req, res) => {
     try {
       const userId = req.user._id;
 
       await Notification.updateMany(
-        { recipient: userId, read: false },
+        { 
+          recipient: userId, 
+          read: false,
+          actionRequired: false // Only mark notifications that don't require actions
+        },
         { read: true }
       );
 
       res.json({
         success: true,
-        message: 'All notifications marked as read'
+        message: 'All non-action notifications marked as read'
       });
     } catch (error) {
       res.status(500).json({

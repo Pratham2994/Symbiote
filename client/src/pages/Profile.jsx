@@ -7,6 +7,7 @@ import {
   Trophy, ArrowLeft, Heart, Share2, UserPlus, 
   ExternalLink, Star, Zap
 } from "lucide-react";
+import { toast } from 'react-toastify';
 
 export default function Profile() {
   const { userId } = useParams();
@@ -44,7 +45,18 @@ export default function Profile() {
         setProfileUser(data.user);
       } catch (err) {
         console.error("Error fetching profile:", err);
-        setError(err.message || "An error occurred while fetching profile");
+        const errorMessage = err.message || "An error occurred while fetching profile";
+        setError(errorMessage);
+        toast.error(errorMessage, {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: "dark",
+        });
       } finally {
         setLoading(false);
       }
@@ -64,10 +76,37 @@ export default function Profile() {
 
   const isOwnProfile = !userId || userId === currentUser?._id;
 
+  const handleEmailClick = (email) => {
+    // Copy email to clipboard
+    navigator.clipboard.writeText(email).then(() => {
+      toast.success('Email copied to clipboard!', {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: "dark",
+      });
+    }).catch(() => {
+      toast.error('Failed to copy email', {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: "dark",
+      });
+    });
+  };
+
   // Loading state
   if (loading) {
     return (
-      <div className="min-h-screen bg-void-black text-ghost-lilac flex items-center justify-center">
+      <div className="min-h-screen bg-void-black text-ghost-lilac overflow-x-hidden">
         <div className="flex flex-col items-center">
           <motion.div
             animate={{
@@ -90,7 +129,7 @@ export default function Profile() {
   // Error state
   if (error || !profileUser) {
     return (
-      <div className="min-h-screen bg-void-black text-ghost-lilac flex items-center justify-center">
+      <div className="min-h-screen bg-void-black text-ghost-lilac overflow-x-hidden">
         <div className="p-6 bg-symbiote-purple/10 border border-venom-purple/20 rounded-xl text-center max-w-md">
           <motion.div
             initial={{ scale: 0 }}
@@ -161,17 +200,15 @@ export default function Profile() {
                 <p className="text-ghost-lilac/70 mb-6">{profileUser.role || "Student"}</p>
                 
                 <div className="w-full space-y-4 mt-auto">
-                  <motion.a 
+                  <motion.div 
                     whileHover={{ x: 5 }}
                     transition={{ duration: 0 }}
-                    href={`https://mail.google.com/mail/?view=cm&fs=1&to=${profileUser.email}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-3 hover:text-venom-purple"
+                    onClick={() => handleEmailClick(profileUser.email)}
+                    className="flex items-center gap-3 hover:text-venom-purple cursor-pointer"
                   >
                     <Mail className="w-5 h-5 text-venom-purple" />
                     <span className="text-sm">{profileUser.email}</span>
-                  </motion.a>
+                  </motion.div>
                   
                   {profileUser.githubLink && (
                     <motion.a 
@@ -181,6 +218,21 @@ export default function Profile() {
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-3 hover:text-venom-purple"
+                      onClick={(e) => {
+                        if (!profileUser.githubLink.startsWith('http')) {
+                          e.preventDefault();
+                          toast.error('Invalid GitHub link', {
+                            position: "top-right",
+                            autoClose: 3000,
+                            hideProgressBar: false,
+                            closeOnClick: true,
+                            pauseOnHover: true,
+                            draggable: true,
+                            progress: undefined,
+                            theme: "dark",
+                          });
+                        }
+                      }}
                     >
                       <Github className="w-5 h-5 text-venom-purple" />
                       <span className="text-sm">GitHub Profile</span>

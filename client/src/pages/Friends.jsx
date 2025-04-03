@@ -37,12 +37,46 @@ export default function Friends() {
         } else {
           console.error("Unexpected response format:", response.data);
           setFriends([]);
-          setError("Failed to load friends list");
+          const errorMsg = "Failed to load friends list";
+          setError(errorMsg);
+          toast.error(errorMsg, {
+            position: "top-right",
+            autoClose: 3000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            progress: undefined,
+            theme: "dark",
+            style: {
+              background: '#0B0B0B',
+              border: '1px solid rgba(139, 92, 246, 0.2)',
+              boxShadow: '0 0 10px rgba(139, 92, 246, 0.1)',
+              color: '#E5E7EB'
+            }
+          });
         }
       } catch (error) {
         console.error("Error fetching friends:", error);
-        setError(error.response?.data?.message || "Failed to load friends");
+        const errorMsg = error.response?.data?.message || "Failed to load friends";
+        setError(errorMsg);
         setFriends([]);
+        toast.error(errorMsg, {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: "dark",
+          style: {
+            background: '#0B0B0B',
+            border: '1px solid rgba(139, 92, 246, 0.2)',
+            boxShadow: '0 0 10px rgba(139, 92, 246, 0.1)',
+            color: '#E5E7EB'
+          }
+        });
       } finally {
         setIsLoading(false);
       }
@@ -80,6 +114,22 @@ export default function Friends() {
           } else {
             setSearchResults([]);
             setShowResults(false);
+            toast.info('This user is already your friend!', {
+              position: "top-right",
+              autoClose: 3000,
+              hideProgressBar: false,
+              closeOnClick: true,
+              pauseOnHover: true,
+              draggable: true,
+              progress: undefined,
+              theme: "dark",
+              style: {
+                background: '#0B0B0B',
+                border: '1px solid rgba(139, 92, 246, 0.2)',
+                boxShadow: '0 0 10px rgba(139, 92, 246, 0.1)',
+                color: '#E5E7EB'
+              }
+            });
           }
         } else if (response.data.success === false) {
           setSearchResults([]);
@@ -89,12 +139,44 @@ export default function Friends() {
           console.error("Unexpected search results format:", response.data);
           setSearchResults([]);
           setShowResults(false);
+          toast.error('Failed to search for users', {
+            position: "top-right",
+            autoClose: 3000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            progress: undefined,
+            theme: "dark",
+            style: {
+              background: '#0B0B0B',
+              border: '1px solid rgba(139, 92, 246, 0.2)',
+              boxShadow: '0 0 10px rgba(139, 92, 246, 0.1)',
+              color: '#E5E7EB'
+            }
+          });
         }
       } catch (error) {
         console.error("Error searching for friends:", error);
         setSearchResults([]);
         setNoUserFound(true);
         setShowResults(true);
+        toast.error(error.response?.data?.message || 'Failed to search for users', {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: "dark",
+          style: {
+            background: '#0B0B0B',
+            border: '1px solid rgba(139, 92, 246, 0.2)',
+            boxShadow: '0 0 10px rgba(139, 92, 246, 0.1)',
+            color: '#E5E7EB'
+          }
+        });
       } finally {
         setIsSearching(false);
       }
