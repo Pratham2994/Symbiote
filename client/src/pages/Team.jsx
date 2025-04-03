@@ -5,6 +5,7 @@ import { Users, Trophy, Star, MessageSquare, UserPlus, ArrowLeft, Calendar } fro
 import { useTeam } from '../context/TeamContext';
 import { useAuth } from '../context/AuthContext';
 import UserNavbar from '../components/UserNavbar';
+import QuickAddModal from '../components/QuickAddModal';
 
 const Team = () => {
   const { teamId } = useParams();
@@ -12,6 +13,7 @@ const Team = () => {
   const { fetchTeamById, loading, error } = useTeam();
   const { user } = useAuth();
   const [team, setTeam] = useState(null);
+  const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
 
   const handleCompetitionClick = (competitionId) => {
     if (competitionId) {
@@ -105,6 +107,7 @@ const Team = () => {
                   transition: { duration: 0, scale: { duration: 0 }, boxShadow: { duration: 0 } }
                 }}
                 whileTap={{ scale: 0.95 }}
+                onClick={() => setIsQuickAddOpen(true)}
                 className="flex items-center gap-2 px-6 py-3 bg-venom-purple/20 border border-venom-purple/30 rounded-xl hover:bg-venom-purple/30 transition-all duration-[50ms]"
               >
                 <UserPlus size={20} className="text-venom-purple" />
@@ -130,7 +133,7 @@ const Team = () => {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
+              transition={{ delay: 0.05 }}
               whileHover={{ 
                 scale: 1.02,
                 boxShadow: "0 0 25px rgba(147, 51, 234, 0.3)",
@@ -144,34 +147,36 @@ const Team = () => {
                   Team Members
                 </h3>
               </div>
-              <div className="flex-1 space-y-3 min-h-0 overflow-visible">
-                {team.members?.map((member) => (
-                  <motion.div 
-                    key={member._id} 
-                    className="flex items-center gap-3 p-2 rounded-lg hover:bg-venom-purple/10 transition-colors group relative hover:z-10 cursor-pointer"
-                    whileHover={{ 
-                      x: 5,
-                      backgroundColor: "rgba(147, 51, 234, 0.1)",
-                      transition: { duration: 0.1 }
-                    }}
-                    onClick={() => navigate(`/dashboard/profile/${member._id}`)}
-                  >
-                    <div className="w-8 h-8 rounded-full bg-venom-purple/20 flex items-center justify-center border border-venom-purple/30">
-                      {member.username?.charAt(0)?.toUpperCase() || '?'}
-                    </div>
-                    <div className="flex flex-col overflow-visible">
-                      <span className="font-medium whitespace-nowrap">{member.username || 'Unknown Member'}</span>
-                      <span className="text-sm text-ghost-lilac/60 whitespace-nowrap">{member.email}</span>
-                    </div>
-                  </motion.div>
-                ))}
+              <div className="flex-1 space-y-3 min-h-0 overflow-y-auto scrollbar-hide relative">
+                <div className="space-y-3">
+                  {team.members?.map((member) => (
+                    <motion.div 
+                      key={member._id} 
+                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-venom-purple/10 transition-colors group relative hover:z-10 cursor-pointer"
+                      whileHover={{ 
+                        x: 5,
+                        backgroundColor: "rgba(147, 51, 234, 0.1)",
+                        transition: { duration: 0.1 }
+                      }}
+                      onClick={() => navigate(`/dashboard/profile/${member._id}`)}
+                    >
+                      <div className="w-8 h-8 rounded-full bg-venom-purple/20 flex items-center justify-center border border-venom-purple/30">
+                        {member.username?.charAt(0)?.toUpperCase() || '?'}
+                      </div>
+                      <div className="flex flex-col overflow-visible">
+                        <span className="font-medium whitespace-nowrap">{member.username || 'Unknown Member'}</span>
+                        <span className="text-sm text-ghost-lilac/60 whitespace-nowrap">{member.email}</span>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
               </div>
             </motion.div>
 
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
+              transition={{ delay: 0.05 }}
               whileHover={{ 
                 scale: 1.02,
                 boxShadow: "0 0 25px rgba(147, 51, 234, 0.3)",
@@ -205,7 +210,7 @@ const Team = () => {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
+              transition={{ delay: 0.05 }}
               whileHover={{ 
                 scale: 1.02,
                 boxShadow: "0 0 25px rgba(147, 51, 234, 0.3)",
@@ -246,6 +251,7 @@ const Team = () => {
           </div>
         </motion.div>
       </main>
+      <QuickAddModal isOpen={isQuickAddOpen} onClose={() => setIsQuickAddOpen(false)} />
       <style jsx>{`
         .scrollbar-hide {
           -ms-overflow-style: none;  /* IE and Edge */
