@@ -23,19 +23,19 @@ const getUserProfile = async(req, res) =>{
     }        
 }
 
-const getUserNotifications = async(req, res)=>{
-    try{
-        const userId = req.user.id
+// const getUserNotifications = async(req, res)=>{
+//     try{
+//         const userId = req.user.id
 
-        const friendNoti = await FriendRequest.findOne({to: userId});
+//         const friendNoti = await FriendRequest.findOne({to: userId});
 
-        res.status(200).json({
-            friendNoti
-        })
-    }
-    catch(err){
-        console.log(err)
-    }
-}
+//         res.status(200).json({
+//             friendNoti
+//         })
+//     }
+//     catch(err){
+//         console.log(err)
+//     }
+// }
 
-module.exports = {getUserProfile, getUserNotifications}
+module.exports = {getUserProfile}

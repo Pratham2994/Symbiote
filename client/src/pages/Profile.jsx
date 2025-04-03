@@ -114,9 +114,8 @@ export default function Profile() {
   }
 
   return (
-    <div className="min-h-screen bg-void-black text-ghost-lilac">
-      <div className="absolute inset-0 bg-gradient-to-b from-void-black via-symbiote-purple/20 to-void-black"></div>
-      
+    <div className="min-h-screen bg-void-black text-ghost-lilac overflow-x-hidden">
+      <div className="fixed inset-0 bg-gradient-to-b from-void-black via-symbiote-purple/20 to-void-black"></div>
       <main className="pt-20 px-4 md:px-8 max-w-7xl mx-auto relative">
         {/* Header with back button */}
         <motion.div 

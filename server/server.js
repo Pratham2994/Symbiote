@@ -10,6 +10,7 @@ const searchForFriendRoutes = require('./routes/searchForFriendRoutes');
 const githubRankRoutes = require('./routes/githubRankRoutes');
 const friendRequestRoutes = require('./routes/friendRequestRoutes');
 const userProfileRoutes = require ('./routes/userProfileRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
 const path = require('path');
 
 const helmet = require('helmet');
@@ -131,6 +132,7 @@ app.use('/api/github', githubRankRoutes);
 app.use('/api/searchForFriends', searchForFriendRoutes);
 app.use('/api/friend-requests', friendRequestRoutes);
 app.use('/api/user', userProfileRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Connect MongoDB
 connectDB();
