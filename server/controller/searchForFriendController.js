@@ -86,7 +86,42 @@ const getAllFriends = async (req, res) => {
         });
     }
 };
+
+const removeFriend = async(req, res)=>{
+    try{
+        userId = req.user.id;
+        const { friendId } = req.body;
+
+        if(!friendId){
+            return res.status(400).json({
+                success: false,
+                message: "FriendId required"
+            })
+        }
+
+        await User.findByIdAndUpdate(userId, { $pull: { friends: friendId } });
+        await User.findByIdAndUpdate(friendId, { $pull: { friends: userId } });
+        
+        //todo remove friendRequestID
+
+        return res.status(200).json({
+            success: true,
+            message: 'Friend removed successfully'
+        });
+
+    }
+    catch(err){
+        console.log(err)
+        return res.status(500).json({
+            success: false,
+            message: 'Internal server error',
+            error: err.message
+        });
+    }
+}
+
 module.exports = {
     searchFriendbyUsername,
-    getAllFriends
+    getAllFriends,
+    removeFriend
 };
