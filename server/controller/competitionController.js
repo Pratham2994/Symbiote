@@ -32,6 +32,48 @@ const createCompetition = async (req, res) => {
                 });
             }
 
+            // Validate dates
+            const startDate = new Date(competitionStartDate);
+            const endDate = new Date(competitionEndDate);
+            const regDeadline = registrationDeadline ? new Date(registrationDeadline) : null;
+
+            if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Invalid date format for start or end date'
+                });
+            }
+
+            if (startDate >= endDate) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Competition end date must be after start date'
+                });
+            }
+
+            if (regDeadline && (isNaN(regDeadline.getTime()) || regDeadline >= startDate)) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Registration deadline must be before competition start date'
+                });
+            }
+
+            // Validate registration fee if provided
+            if (registrationFee !== undefined && (isNaN(registrationFee) || registrationFee < 0)) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Registration fee must be a non-negative number'
+                });
+            }
+
+            // Validate tags if provided
+            if (tags && (!Array.isArray(tags) || tags.some(tag => typeof tag !== 'string'))) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Tags must be an array of strings'
+                });
+            }
+
             const newComp = await Competition.create({
                 title,
                 ongoing: ongoing || false,
@@ -39,12 +81,12 @@ const createCompetition = async (req, res) => {
                 description,
                 collegeName,
                 competitionLocation,
-                competitionStartDate,
-                competitionEndDate,
+                competitionStartDate: startDate,
+                competitionEndDate: endDate,
                 timing,
                 registrationLink,
                 prize,
-                registrationDeadline,
+                registrationDeadline: regDeadline,
                 registrationFee,
                 contact,
                 imagePath,
@@ -69,21 +111,44 @@ const createCompetition = async (req, res) => {
     }
 };
 
-
 const getAllCompetitions = async (req, res) => {
     try {
-        // Default to ascending order unless explicitly set to 'desc'
+        // Validate and parse query parameters
         const sortOrder = req.query.sortOrder === 'asc' ? 1 : -1;
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
+
+        if (page < 1 || limit < 1) {
+            return res.status(400).json({
+                success: false,
+                message: 'Page and limit must be positive numbers'
+            });
+        }
+
         const skip = (page - 1) * limit;
 
-        const competitions = await Competition.find()
+        // Build filter based on query parameters
+        const filter = {};
+        if (req.query.ongoing !== undefined) {
+            filter.ongoing = req.query.ongoing === 'true';
+        }
+        if (req.query.tags) {
+            filter.tags = { $in: req.query.tags.split(',') };
+        }
+        if (req.query.startDate) {
+            filter.competitionStartDate = { $gte: new Date(req.query.startDate) };
+        }
+        if (req.query.endDate) {
+            filter.competitionEndDate = { $lte: new Date(req.query.endDate) };
+        }
+
+        const competitions = await Competition.find(filter)
             .sort({ competitionStartDate: sortOrder })
             .skip(skip)
-            .limit(limit);
+            .limit(limit)
+            .populate('registeredTeams', 'name members');
 
-        const total = await Competition.countDocuments();
+        const total = await Competition.countDocuments(filter);
 
         res.status(200).json({
             success: true,
@@ -105,7 +170,17 @@ const getAllCompetitions = async (req, res) => {
 
 const getCompetitionById = async (req, res) => {
     try {
-        const competition = await Competition.findById(req.params.id);
+        const { id } = req.params;
+
+        if (!id) {
+            return res.status(400).json({
+                success: false,
+                message: 'Competition ID is required'
+            });
+        }
+
+        const competition = await Competition.findById(id)
+            .populate('registeredTeams', 'name members');
         
         if (!competition) {
             return res.status(404).json({

@@ -1,5 +1,6 @@
 const FriendRequest = require('../models/FriendRequest');
 const User = require('../models/User');
+const Notification = require('../models/Notification');
 
 const sendFriendRequest = async (req, res) => {
     try {
@@ -30,6 +31,15 @@ const sendFriendRequest = async (req, res) => {
             });
         }
 
+        // Check if users are already friends
+        const fromUser = await User.findById(fromUserId);
+        if (fromUser.friends.includes(toUser._id)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Users are already friends'
+            });
+        }
+
         // Check if a friend request already exists
         const existingRequest = await FriendRequest.findOne({
             $or: [
@@ -52,6 +62,19 @@ const sendFriendRequest = async (req, res) => {
             status: 'Pending'
         });
 
+        // Create notification for the recipient
+        await Notification.create({
+            recipient: toUser._id,
+            sender: fromUserId,
+            type: 'FRIEND_REQUEST',
+            message: `${req.user.username} wants to be your friend`,
+            actionRequired: true,
+            actionType: 'ACCEPT_REJECT',
+            actionData: {
+                requestId: friendRequest._id
+            }
+        });
+
         return res.status(201).json({
             success: true,
             message: 'Friend request sent successfully',
@@ -68,17 +91,21 @@ const sendFriendRequest = async (req, res) => {
 
 const acceptFriendRequest = async (req, res) => {
     try {
-        const { requestId, recipientId, response } = req.body;
+        const { requestId } = req.body;
+        const userId = req.user.id;
 
-        if (!requestId || !recipientId || !response) {
+        if (!requestId) {
             return res.status(400).json({
                 success: false,
-                message: 'requestId, recipientId and response are required'
+                message: 'requestId is required'
             });
         }
 
         // Find the friend request by its ID
-        const friendRequest = await FriendRequest.findById(requestId);
+        const friendRequest = await FriendRequest.findById(requestId)
+            .populate('from', 'username')
+            .populate('to', 'username');
+
         if (!friendRequest) {
             return res.status(404).json({
                 success: false,
@@ -86,35 +113,122 @@ const acceptFriendRequest = async (req, res) => {
             });
         }
 
-        // Verify that the recipient is the one who received the friend request
-        if (friendRequest.to.toString() !== recipientId) {
+        // Verify that the current user is the recipient
+        if (friendRequest.to._id.toString() !== userId) {
             return res.status(403).json({
                 success: false,
-                message: 'You are not authorized to view this friend request'
+                message: 'You are not authorized to accept this friend request'
             });
         }
 
-        // Update the friend request status to Accepted or Rejected
-        if(response == "Accept"){
-
-            //need to check if friend already exists
-
-            friendRequest.status = 'Accepted';
-            await friendRequest.save();
-            await User.findByIdAndUpdate(friendRequest.from, { $push: { friends: friendRequest.to } });
-            await User.findByIdAndUpdate(friendRequest.to, { $push: { friends: friendRequest.from } });
+        // Check if request is still pending
+        if (friendRequest.status !== 'Pending') {
+            return res.status(400).json({
+                success: false,
+                message: `Friend request is already ${friendRequest.status}`
+            });
         }
-        else if(respose == "Reject"){
-            friendRequest.status = "Rejected";
-            await friendRequest.save();
-        }
+
+        // Check if users are already friends
+        const fromUser = await User.findById(friendRequest.from);
+        const toUser = await User.findById(friendRequest.to);
         
-        return res.status(200).json({
-            success: true,
-            message: `Friend request ${friendRequest.status} successfully`,
-            friendRequest
+        if (fromUser.friends.includes(friendRequest.to._id) || toUser.friends.includes(friendRequest.from._id)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Users are already friends'
+            });
+        }
+
+        // Update friend request status
+        friendRequest.status = 'Accepted';
+        await friendRequest.save();
+
+        // Add friends to each other's friend list
+        await User.findByIdAndUpdate(friendRequest.from, { $push: { friends: friendRequest.to._id } });
+        await User.findByIdAndUpdate(friendRequest.to, { $push: { friends: friendRequest.from._id } });
+
+        // Create notification for the sender about acceptance
+        await Notification.create({
+            recipient: friendRequest.from._id,
+            sender: friendRequest.to._id,
+            type: 'FRIEND_REQUEST_ACCEPTED',
+            message: `${toUser.username} accepted your friend request`,
+            actionRequired: false
         });
 
+        return res.status(200).json({
+            success: true,
+            message: 'Friend request accepted successfully',
+            friendRequest
+        });
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: 'Internal server error',
+            error: error.message
+        });
+    }
+};
+
+const rejectFriendRequest = async (req, res) => {
+    try {
+        const { requestId } = req.body;
+        const userId = req.user.id;
+
+        if (!requestId) {
+            return res.status(400).json({
+                success: false,
+                message: 'requestId is required'
+            });
+        }
+
+        // Find the friend request by its ID
+        const friendRequest = await FriendRequest.findById(requestId)
+            .populate('from', 'username')
+            .populate('to', 'username');
+
+        if (!friendRequest) {
+            return res.status(404).json({
+                success: false,
+                message: 'Friend request not found'
+            });
+        }
+
+        // Verify that the current user is the recipient
+        if (friendRequest.to._id.toString() !== userId) {
+            return res.status(403).json({
+                success: false,
+                message: 'You are not authorized to reject this friend request'
+            });
+        }
+
+        // Check if request is still pending
+        if (friendRequest.status !== 'Pending') {
+            return res.status(400).json({
+                success: false,
+                message: `Friend request is already ${friendRequest.status}`
+            });
+        }
+
+        // Update friend request status
+        friendRequest.status = 'Rejected';
+        await friendRequest.save();
+
+        // Create notification for the sender about rejection
+        await Notification.create({
+            recipient: friendRequest.from._id,
+            sender: friendRequest.to._id,
+            type: 'FRIEND_REQUEST_REJECTED',
+            message: `${friendRequest.to.username} rejected your friend request`,
+            actionRequired: false
+        });
+
+        return res.status(200).json({
+            success: true,
+            message: 'Friend request rejected successfully',
+            friendRequest
+        });
     } catch (error) {
         return res.status(500).json({
             success: false,
@@ -127,4 +241,5 @@ const acceptFriendRequest = async (req, res) => {
 module.exports = {
     sendFriendRequest,
     acceptFriendRequest,
+    rejectFriendRequest
 };

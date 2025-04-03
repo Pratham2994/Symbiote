@@ -1,5 +1,7 @@
 const JoinRequest = require('../models/JoinRequest')
 const Team = require('../models/Team');
+const User = require('../models/User');
+const Notification = require('../models/Notification');
 
 const joinTeamRequest = async(req, res)=>{
     try{
@@ -13,7 +15,7 @@ const joinTeamRequest = async(req, res)=>{
             });
         }
 
-        const team = await Team.findById(teamId);
+        const team = await Team.findById(teamId).populate('createdBy', 'username');
         if (!team) {
             return res.status(404).json({
                 success: false,
@@ -44,6 +46,22 @@ const joinTeamRequest = async(req, res)=>{
             team: teamId,
         });
 
+        // Create notification for the team leader
+        const user = await User.findById(userId);
+        await Notification.create({
+            recipient: team.createdBy._id,
+            sender: userId,
+            type: 'TEAM_JOIN_REQUEST',
+            team: teamId,
+            message: `${user.username} wants to join your team ${team.name}`,
+            actionRequired: true,
+            actionType: 'ACCEPT_REJECT',
+            actionData: {
+                requestId: newRequest._id,
+                teamId: teamId
+            }
+        });
+
         return res.status(201).json({
             success: true,
             message: "Join request sent successfully",
@@ -70,11 +88,12 @@ const handleJoinRequest = async(req, res)=>{
             });
         }
 
-
-        const request = await JoinRequest.findById(requestId).populate('team', 'members');
+        const request = await JoinRequest.findById(requestId)
+            .populate('team', 'members createdBy')
+            .populate('user', 'username');
         
         if(!request){
-            return res.status(400).status({
+            return res.status(400).json({
                 success: false,
                 message: "Non existent request"
             });
@@ -96,10 +115,20 @@ const handleJoinRequest = async(req, res)=>{
             });
         }
 
-
         if(action === "Reject"){
             request.status = "Rejected"
             await request.save()
+
+            // Create notification for the requester about rejection
+            await Notification.create({
+                recipient: request.user._id,
+                sender: userId,
+                type: 'TEAM_JOIN_REQUEST_REJECTED',
+                team: request.team._id,
+                message: `Your request to join team ${request.team.name} was rejected`,
+                actionRequired: false
+            });
+
             return res.status(200).json({
                 success: true,
                 message: `Request ${request.status}`,
@@ -127,6 +156,15 @@ const handleJoinRequest = async(req, res)=>{
             // Save the team which will trigger the pre-save middleware
             await team.save();
 
+            // Create notification for the requester about acceptance
+            await Notification.create({
+                recipient: request.user._id,
+                sender: userId,
+                type: 'TEAM_JOIN_REQUEST_ACCEPTED',
+                team: request.team._id,
+                message: `Your request to join team ${request.team.name} was accepted`,
+                actionRequired: false
+            });
 
             return res.status(200).json({
                 success: true,

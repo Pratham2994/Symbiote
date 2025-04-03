@@ -1,5 +1,7 @@
 const TeamInvite = require('../models/TeamInvite')
 const Team = require('../models/Team');
+const User = require('../models/User');
+const Notification = require('../models/Notification');
 
 const inviteToTeam = async(req, res)=>{
     try{
@@ -13,7 +15,7 @@ const inviteToTeam = async(req, res)=>{
             });
         }
 
-        const team = await Team.findById(teamId);
+        const team = await Team.findById(teamId).populate('competition');
         if (!team) {
             return res.status(404).json({
                 success: false,
@@ -30,9 +32,27 @@ const inviteToTeam = async(req, res)=>{
             });
         }
 
+        // Check if friend is already part of any team in this competition
+        const existingTeamInCompetition = await Team.findOne({
+            competition: team.competition._id,
+            members: friendId
+        });
+
+        if (existingTeamInCompetition) {
+            return res.status(400).json({
+                success: false,
+                message: "Friend is already part of a team in this competition"
+            });
+        }
+
         // Check if an invite already exists for this friend and team
-        const existingInvite = await TeamInvite.findOne({ team: teamId, toUser: friendId });
-        if (existingInvite && existingInvite.status === "Pending") {
+        const existingInvite = await TeamInvite.findOne({ 
+            team: teamId, 
+            toUser: friendId,
+            status: "Pending"
+        });
+        
+        if (existingInvite) {
             return res.status(400).json({
                 success: false,
                 message: "An invitation has already been sent to this friend"
@@ -43,7 +63,24 @@ const inviteToTeam = async(req, res)=>{
         const teamInvite = await TeamInvite.create({
             team: teamId,
             fromUser: userId,
-            toUser: friendId
+            toUser: friendId,
+            status: "Pending"
+        });
+
+        // Create notification for the friend
+        const fromUser = await User.findById(userId);
+        await Notification.create({
+            recipient: friendId,
+            sender: userId,
+            type: 'TEAM_INVITE',
+            team: teamId,
+            message: `${fromUser.username} invited you to join team ${team.name} for ${team.competition.title}`,
+            actionRequired: true,
+            actionType: 'ACCEPT_REJECT',
+            actionData: {
+                inviteId: teamInvite._id,
+                teamId: teamId
+            }
         });
 
         return res.status(201).json({
@@ -76,7 +113,10 @@ const handleTeamInvite = async (req, res) => {
         }
 
         // Find the invitation
-        const invite = await TeamInvite.findById(inviteId).populate('team', 'members');
+        const invite = await TeamInvite.findById(inviteId)
+            .populate('team', 'members competition')
+            .populate('fromUser', 'username');
+            
         if (!invite) {
             return res.status(404).json({
                 success: false,
@@ -104,6 +144,17 @@ const handleTeamInvite = async (req, res) => {
         if (action === "Reject") {
             invite.status = "Rejected";
             await invite.save();
+
+            // Create notification for the sender about rejection
+            await Notification.create({
+                recipient: invite.fromUser._id,
+                sender: userId,
+                type: 'TEAM_INVITE_REJECTED',
+                team: invite.team._id,
+                message: `${req.user.username} rejected your team invite`,
+                actionRequired: false
+            });
+
             return res.status(200).json({
                 success: true,
                 message: `Invitation ${invite.status} successfully`
@@ -121,6 +172,19 @@ const handleTeamInvite = async (req, res) => {
                 });
             }
 
+            // Check if user is already part of any team in this competition
+            const existingTeamInCompetition = await Team.findOne({
+                competition: invite.team.competition._id,
+                members: userId
+            });
+
+            if (existingTeamInCompetition) {
+                return res.status(400).json({
+                    success: false,
+                    message: "You are already part of a team in this competition"
+                });
+            }
+
             // Add the user to the team
             const team = await Team.findById(invite.team._id).populate('members', 'frontendScore backendScore eqScore');
             team.members.push(userId);
@@ -129,6 +193,16 @@ const handleTeamInvite = async (req, res) => {
             // Update the invitation status to "Accepted"
             invite.status = "Accepted";
             await invite.save();
+
+            // Create notification for the sender about acceptance
+            await Notification.create({
+                recipient: invite.fromUser._id,
+                sender: userId,
+                type: 'TEAM_INVITE_ACCEPTED',
+                team: invite.team._id,
+                message: `${req.user.username} accepted your team invite`,
+                actionRequired: false
+            });
 
             return res.status(200).json({
                 success: true,

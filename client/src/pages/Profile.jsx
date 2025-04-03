@@ -153,9 +153,9 @@ export default function Profile() {
   }
 
   return (
-    <div className="min-h-screen bg-void-black text-ghost-lilac overflow-x-hidden">
+    <div className="min-h-screen bg-void-black text-ghost-lilac overflow-x-hidden flex flex-col">
       <div className="fixed inset-0 bg-gradient-to-b from-void-black via-symbiote-purple/20 to-void-black"></div>
-      <main className="pt-20 px-4 md:px-8 max-w-7xl mx-auto relative">
+      <main className="pt-20 px-4 md:px-8 max-w-7xl mx-auto relative flex-grow w-full">
         {/* Header with back button */}
         <motion.div 
           initial={{ opacity: 0, y: -20 }}
@@ -180,8 +180,9 @@ export default function Profile() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
             whileHover={{
+              scale: 1.02,
               boxShadow: "0 0 25px rgba(147, 51, 234, 0.3)",
-              transition: { duration: 0 }
+              transition: { duration: 0, scale: { duration: 0 }, boxShadow: { duration: 0 } }
             }}
             style={{ borderRadius: "0.75rem" }}
             className="md:col-span-1 h-full overflow-hidden"
@@ -255,8 +256,9 @@ export default function Profile() {
               {/* About Me */}
               <motion.div
                 whileHover={{
+                  scale: 1.02,
                   boxShadow: "0 0 25px rgba(147, 51, 234, 0.3)",
-                  transition: { duration: 0 }
+                  transition: { duration: 0, scale: { duration: 0 }, boxShadow: { duration: 0 } }
                 }}
                 style={{ borderRadius: "0.75rem" }}
                 className="bg-gradient-to-br from-symbiote-purple/10 to-venom-purple/5 backdrop-blur-sm border border-venom-purple/20 rounded-xl p-6 shadow-xl shadow-venom-purple/5 hover:border-venom-purple/40 transition-[border-color] duration-0 overflow-hidden"
@@ -273,8 +275,9 @@ export default function Profile() {
               {/* Skills */}
               <motion.div
                 whileHover={{
+                  scale: 1.02,
                   boxShadow: "0 0 25px rgba(147, 51, 234, 0.3)",
-                  transition: { duration: 0 }
+                  transition: { duration: 0, scale: { duration: 0 }, boxShadow: { duration: 0 } }
                 }}
                 style={{ borderRadius: "0.75rem" }}
                 className="bg-gradient-to-br from-symbiote-purple/10 to-venom-purple/5 backdrop-blur-sm border border-venom-purple/20 rounded-xl p-6 shadow-xl shadow-venom-purple/5 hover:border-venom-purple/40 transition-[border-color] duration-0 overflow-hidden"
@@ -329,8 +332,9 @@ export default function Profile() {
               {profileUser.socialLinks && profileUser.socialLinks.length > 0 && (
                 <motion.div
                   whileHover={{
+                    scale: 1.02,
                     boxShadow: "0 0 25px rgba(147, 51, 234, 0.3)",
-                    transition: { duration: 0 }
+                    transition: { duration: 0, scale: { duration: 0 }, boxShadow: { duration: 0 } }
                   }}
                   style={{ borderRadius: "0.75rem" }}
                   className="bg-gradient-to-br from-symbiote-purple/10 to-venom-purple/5 backdrop-blur-sm border border-venom-purple/20 rounded-xl p-6 shadow-xl shadow-venom-purple/5 hover:border-venom-purple/40 transition-[border-color] duration-0 overflow-hidden"
@@ -364,6 +368,25 @@ export default function Profile() {
           </motion.div>
         </div>
       </main>
+      {/* Footer */}
+      <footer className="border-t border-venom-purple/20 py-6 w-full mt-auto relative">
+        <div className="max-w-7xl mx-auto px-4 md:px-8 flex justify-between items-center">
+          <p className="text-ghost-lilac/60 text-sm">
+            © 2025 Symbiote. All rights reserved.
+          </p>
+          <div className="flex items-center gap-2">
+            <span className="text-ghost-lilac/60 text-sm">Connect with us</span>
+            <a
+              href="https://github.com/Pratham2994/Symbiote"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-ghost-lilac/60 hover:text-venom-purple transition-colors z-10"
+            >
+              <Github size={20} />
+            </a>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

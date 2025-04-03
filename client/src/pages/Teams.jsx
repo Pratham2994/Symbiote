@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { Users, Trophy, Calendar, User, Search, Clock } from "lucide-react";
+import { Users, Trophy, Calendar, User, Search, Clock, Github } from "lucide-react";
 import UserNavbar from "../components/UserNavbar";
 import { useTeam } from "../context/TeamContext";
 import { useAuth } from "../context/AuthContext";
@@ -185,15 +185,15 @@ const Teams = () => {
   );
 
   return (
-    <div className="min-h-screen bg-[#0B0B0B] text-ghost-lilac">
+    <div className="min-h-screen bg-[#0B0B0B] text-ghost-lilac flex flex-col">
       <div className="absolute inset-0 bg-gradient-to-b from-void-black via-symbiote-purple/20 to-void-black"></div>
       <UserNavbar />
-      <main className="pt-24 px-4 md:px-8 max-w-7xl mx-auto relative">
+      <main className="pt-24 px-4 md:px-8 max-w-7xl mx-auto relative flex-grow w-full">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="space-y-8"
+          className="space-y-8 mb-8"
         >
           {/* Header and Search */}
           <div className="space-y-6">
@@ -264,6 +264,25 @@ const Teams = () => {
           )}
         </motion.div>
       </main>
+      {/* Footer */}
+      <footer className="border-t border-venom-purple/20 py-6 w-full mt-auto relative">
+        <div className="max-w-7xl mx-auto px-4 md:px-8 flex justify-between items-center">
+          <p className="text-ghost-lilac/60 text-sm">
+            © 2025 Symbiote. All rights reserved.
+          </p>
+          <div className="flex items-center gap-2">
+            <span className="text-ghost-lilac/60 text-sm">Connect with us</span>
+            <a
+              href="https://github.com/Pratham2994/Symbiote"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-ghost-lilac/60 hover:text-venom-purple transition-colors z-10"
+            >
+              <Github size={20} />
+            </a>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };

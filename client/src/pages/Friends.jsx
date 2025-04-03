@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, UserPlus, Users, Loader2, UserRound, PlusCircle, UserMinus } from "lucide-react";
+import { Search, UserPlus, Users, Loader2, UserRound, PlusCircle, UserMinus, Github } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import debounce from "lodash/debounce";
@@ -28,7 +28,7 @@ export default function Friends() {
         const response = await axios.post("/searchForFriends/allFriends/", {
           userId: user._id,
         });
-        
+
         // Ensure we have an array of friends
         if (Array.isArray(response.data)) {
           setFriends(response.data);
@@ -103,7 +103,7 @@ export default function Friends() {
         const response = await axios.post("/searchForFriends/searchFriend", {
           username: query.trim(),
         });
-        
+
         // Handle the response format from the server
         if (response.data.success && response.data.user) {
           // Only add the user if they're not already in the friends list
@@ -196,7 +196,7 @@ export default function Friends() {
     const timer = setTimeout(() => {
       debouncedSearch(searchQuery);
     }, 300);
-    
+
     return () => {
       clearTimeout(timer);
       debouncedSearch.cancel();
@@ -204,14 +204,14 @@ export default function Friends() {
   }, [searchQuery, debouncedSearch]);
 
   return (
-    <div className="min-h-screen bg-void-black text-ghost-lilac overflow-x-hidden">
+    <div className="min-h-screen bg-void-black text-ghost-lilac overflow-x-hidden flex flex-col">
       <div className="fixed inset-0 bg-gradient-to-b from-void-black via-symbiote-purple/20 to-void-black"></div>
-      <main className="pt-24 px-4 md:px-8 max-w-7xl mx-auto relative">
+      <main className="pt-24 px-4 md:px-8 max-w-7xl mx-auto relative flex-grow w-full">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="space-y-8"
+          className="space-y-8 mb-8"
         >
           {/* Search Section */}
           <div className="relative">
@@ -284,7 +284,7 @@ export default function Friends() {
                             <p className="text-ghost-lilac">{result.username}</p>
                           </div>
                         </div>
-                        <button 
+                        <button
                           className="px-4 py-1.5 bg-venom-purple text-white rounded-full text-sm hover:bg-venom-purple/80 transition-colors flex items-center gap-1.5 shadow-md shadow-venom-purple/20"
                           onClick={async (e) => {
                             e.stopPropagation(); // Prevent triggering the parent div's onClick
@@ -292,7 +292,7 @@ export default function Friends() {
                               const response = await axios.post('/friend-requests/send', {
                                 toUsername: result.username
                               });
-                              
+
                               if (response.data.success) {
                                 toast.success('Friend request sent successfully!', {
                                   position: "top-right",
@@ -343,10 +343,10 @@ export default function Friends() {
           </div>
 
           {/* Friends List */}
-          <div className="space-y-6 transition-all duration-300" style={{ 
-            marginTop: showResults && (searchResults.length > 0 || noUserFound) 
-              ? (noUserFound ? '80px' : searchResults.length === 1 ? '100px' : '120px') 
-              : '32px' 
+          <div className="space-y-6 transition-all duration-300" style={{
+            marginTop: showResults && (searchResults.length > 0 || noUserFound)
+              ? (noUserFound ? '80px' : searchResults.length === 1 ? '100px' : '120px')
+              : '32px'
           }}>
             <div className="flex items-center gap-2">
               <Users className="text-venom-purple" size={24} />
@@ -428,6 +428,25 @@ export default function Friends() {
           </div>
         </motion.div>
       </main>
+      {/* Footer */}
+      <footer className="border-t border-venom-purple/20 py-6 w-full mt-auto relative">
+        <div className="max-w-7xl mx-auto px-4 md:px-8 flex justify-between items-center">
+          <p className="text-ghost-lilac/60 text-sm">
+            © 2025 Symbiote. All rights reserved.
+          </p>
+          <div className="flex items-center gap-2">
+            <span className="text-ghost-lilac/60 text-sm">Connect with us</span>
+            <a
+              href="https://github.com/Pratham2994/Symbiote"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-ghost-lilac/60 hover:text-venom-purple transition-colors z-10"
+            >
+              <Github size={20} />
+            </a>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
