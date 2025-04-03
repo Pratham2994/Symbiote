@@ -17,13 +17,29 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const swaggerJsDoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
-const WebSocket = require('ws');
 const http = require('http');
+const { Server } = require('socket.io');
 
 dotenv.config();
 const app = express();
 const server = http.createServer(app);
-const wss = new WebSocket.Server({ server });
+
+// Socket.IO setup with proper CORS
+const io = new Server(server, {
+  cors: {
+    origin: "http://localhost:5173",
+    methods: ["GET", "POST", "PATCH", "DELETE"],
+    credentials: true
+  },
+  transports: ['websocket']
+});
+
+// Make io globally available
+global.io = io;
+
+// Make io available to our app (for backward compatibility)
+app.set('io', io);
+
 const PORT = process.env.PORT || 5000;
 
 // CORS configuration
@@ -99,28 +115,23 @@ app.use((err, req, res, next) => {
   next();
 });
 
-// WebSocket connection handling
-wss.on('connection', (ws) => {
-  console.log('New WebSocket connection');
+// Socket.IO connection handling
+io.on('connection', (socket) => {
+  console.log('User connected:', socket.id);
 
-  ws.on('message', (message) => {
-    try {
-      const data = JSON.parse(message);
-      // Handle different types of messages
-      switch (data.type) {
-        case 'ping':
-          ws.send(JSON.stringify({ type: 'pong' }));
-          break;
-        default:
-          console.log('Received:', data);
-      }
-    } catch (error) {
-      console.error('WebSocket message error:', error);
+  // Authenticate socket connection
+  socket.on('authenticate', (userId) => {
+    if (userId) {
+      socket.join(userId.toString());
+      console.log('User authenticated:', userId);
+      
+      // Send initial notification count
+      socket.emit('ready', { status: 'connected' });
     }
   });
 
-  ws.on('close', () => {
-    console.log('Client disconnected');
+  socket.on('disconnect', () => {
+    console.log('User disconnected:', socket.id);
   });
 });
 

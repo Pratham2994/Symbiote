@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import UserNavbar from "../components/UserNavbar";
-import { Github, Calendar, MapPin, Clock, Users, Award, Building2, Tag, Mail, Phone, Link as LinkIcon, X, Linkedin, Twitter, ArrowLeft } from "lucide-react";
+import { Github, Calendar, MapPin, Clock, Users, Award, Building2, Tag, Mail, Phone, Link as LinkIcon, X, Linkedin, Twitter, ArrowLeft, UserPlus } from "lucide-react";
 import { useHackathon } from "../context/HackathonContext";
 import { useAuth } from "../context/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
@@ -19,6 +19,7 @@ const Hackathon = () => {
     const [isViewTeamsActive, setIsViewTeamsActive] = useState(false);
     const [teamsData, setTeamsData] = useState(null);
     const [isLoadingTeams, setIsLoadingTeams] = useState(false);
+    const [joiningTeamId, setJoiningTeamId] = useState(null);
 
     // Always run this useEffect to fetch the hackathon by id
     useEffect(() => {
@@ -106,7 +107,7 @@ const Hackathon = () => {
             }
 
             const data = await response.json();
-
+            console.log(data);
             // Close modal and reset form
             setIsModalOpen(false);
             setTeamName("");
@@ -126,8 +127,12 @@ const Hackathon = () => {
                 }
             });
 
-            // Navigate to the newly created team's page
-            navigate(`/dashboard/teams/${data.team._id}`);
+            // Navigate using the team ID from the correct path in response data
+            if (data && data.data && data.data._id) {
+                navigate(`/dashboard/teams/${data.data._id}`);
+            } else {
+                console.warn("Team created but no team ID received in response", data);
+            }
         } catch (err) {
             // Show error toast
             toast.error(err.message || "Failed to create team", {
@@ -201,6 +206,54 @@ const Hackathon = () => {
             });
         } finally {
             setIsLoadingTeams(false);
+        }
+    };
+
+    const handleJoinTeam = async (teamId) => {
+        setJoiningTeamId(teamId);
+        try {
+            const response = await fetch("http://localhost:5000/api/teams/joinRequest", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                credentials: "include",
+                body: JSON.stringify({
+                    teamId: teamId
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                toast.success(data.message || "Join request sent successfully!", {
+                    style: {
+                        background: '#0B0B0B',
+                        border: '1px solid rgba(139, 92, 246, 0.2)',
+                        boxShadow: '0 0 10px rgba(139, 92, 246, 0.1)',
+                        color: '#E5E7EB'
+                    },
+                    progressStyle: {
+                        background: '#8B5CF6'
+                    }
+                });
+            } else {
+                throw new Error(data.message || "Failed to send join request");
+            }
+        } catch (err) {
+            toast.error(err.message || "Failed to send join request", {
+                style: {
+                    background: '#0B0B0B',
+                    border: '1px solid rgba(139, 92, 246, 0.2)',
+                    boxShadow: '0 0 10px rgba(139, 92, 246, 0.1)',
+                    color: '#E5E7EB'
+                },
+                progressStyle: {
+                    background: '#8B5CF6'
+                }
+            });
+        } finally {
+            setJoiningTeamId(null);
         }
     };
 
@@ -462,10 +515,29 @@ const Hackathon = () => {
                                                 <div className="flex justify-between items-start mb-6">
                                                     <div>
                                                         <h3 className="text-2xl font-bold text-venom-purple mb-2">Team Name : {team.name}</h3>
-                                                        <p className="text-lg text-ghost-lilac/60">Team Matching Score: {Math.round(team.matchScore )}%</p>
+                                                        <p className="text-lg text-ghost-lilac/60">Team Matching Score: {Math.round(team.matchScore)}%</p>
                                                     </div>
-                                                    <div className="px-6 py-2 rounded-full bg-venom-purple/20 text-venom-purple font-semibold text-lg">
-                                                        {team.members.length} {team.members.length === 1 ? 'Member' : 'Members'}
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="px-6 py-2 rounded-full bg-venom-purple/20 text-venom-purple font-semibold text-lg">
+                                                            {team.members.length} {team.members.length === 1 ? 'Member' : 'Members'}
+                                                        </div>
+                                                        <button
+                                                            onClick={() => handleJoinTeam(team.teamId)}
+                                                            disabled={joiningTeamId === team.teamId}
+                                                            className="px-6 py-2 bg-venom-purple rounded-lg shadow-neon hover:shadow-neon-lg hover:bg-venom-purple/90 hover:scale-105 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                                                        >
+                                                            {joiningTeamId === team.teamId ? (
+                                                                <>
+                                                                    <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                                                                    Joining...
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <UserPlus className="w-5 h-5" />
+                                                                    Join Team
+                                                                </>
+                                                            )}
+                                                        </button>
                                                     </div>
                                                 </div>
                                                 <div className="grid grid-cols-3 gap-6">

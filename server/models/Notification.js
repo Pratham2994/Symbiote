@@ -38,6 +38,10 @@ const notificationSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  seen: {
+    type: Boolean,
+    default: false
+  },
   actionRequired: {
     type: Boolean,
     default: false
@@ -56,5 +60,6 @@ const notificationSchema = new mongoose.Schema({
 // Index for faster queries
 notificationSchema.index({ recipient: 1, read: 1 });
 notificationSchema.index({ recipient: 1, createdAt: -1 });
+notificationSchema.index({ recipient: 1, seen: 1 });
 
 module.exports = mongoose.model('Notification', notificationSchema); 

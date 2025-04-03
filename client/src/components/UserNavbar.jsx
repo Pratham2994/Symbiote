@@ -1,28 +1,18 @@
 import React, { useState, useEffect } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { Code2, Home, Trophy, Users2, Users, Bell, User } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import { useNotification } from "../context/NotificationContext";
 import { navbarScroll, navLinkHover } from "../utils/animations";
 import { motion } from "framer-motion";
 import NotificationModal from "./Modals/NotificationModal";
-import api from '../utils/api';
 
 export default function UserNavbar() {
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
+  const { unreadCount } = useNotification();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
-
-  const fetchUnreadCount = async () => {
-    try {
-      const response = await api.get('/api/notifications');
-      if (response.data.success && response.data.data) {
-        setUnreadCount(response.data.data.unreadCount || 0);
-      }
-    } catch (error) {
-      console.error('Error fetching unread count:', error);
-    }
-  };
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -32,11 +22,6 @@ export default function UserNavbar() {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
-
-  // Fetch unread count when component mounts and when modal is closed
-  useEffect(() => {
-    fetchUnreadCount();
-  }, [isNotificationModalOpen]);
 
   const handleLogout = async () => {
     await logout();
@@ -89,14 +74,12 @@ export default function UserNavbar() {
             <div className="flex items-center gap-6">
               <button
                 onClick={() => setIsNotificationModalOpen(true)}
-                className={`relative text-ghost-lilac/80 hover:text-venom-purple transition-colors ${
-                  isNotificationModalOpen ? 'text-venom-purple' : ''
-                }`}
+                className="relative p-2 hover:bg-venom-purple/20 rounded-lg transition-colors"
               >
-                <Bell size={24} />
-                {unreadCount >= 1 && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-venom-purple rounded-full text-xs flex items-center justify-center text-white">
-                    {unreadCount > 99 ? '99+' : unreadCount}
+                <Bell className="w-6 h-6 text-ghost-lilac" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-venom-purple text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
+                    {unreadCount}
                   </span>
                 )}
               </button>

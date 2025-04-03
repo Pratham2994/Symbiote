@@ -250,7 +250,7 @@ export default function Friends() {
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  className="absolute z-50 w-full mt-2 bg-symbiote-purple/10 backdrop-blur-sm border border-venom-purple/20 rounded-lg shadow-lg"
+                  className="absolute z-10 w-full mt-2 bg-symbiote-purple/10 backdrop-blur-sm border border-venom-purple/20 rounded-lg shadow-lg"
                 >
                   {noUserFound ? (
                     <motion.div

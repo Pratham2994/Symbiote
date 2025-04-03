@@ -63,17 +63,27 @@ const sendFriendRequest = async (req, res) => {
         });
 
         // Create notification for the recipient
-        await Notification.create({
+        const notification = await Notification.create({
             recipient: toUser._id,
             sender: fromUserId,
             type: 'FRIEND_REQUEST',
-            message: `${req.user.username} wants to be your friend`,
+            message: `${fromUser.username} wants to be your friend`,
             actionRequired: true,
             actionType: 'ACCEPT_REJECT',
             actionData: {
                 requestId: friendRequest._id
             }
         });
+
+        // Populate the notification with sender info
+        await notification.populate('sender', 'username email');
+
+        // Emit WebSocket event for new notification
+        const io = global.io;
+        if (io) {
+            io.to(toUser._id.toString()).emit('newNotification', notification);
+            io.to(toUser._id.toString()).emit('notificationCount', { count: await Notification.countDocuments({ recipient: toUser._id, read: false }) });
+        }
 
         return res.status(201).json({
             success: true,
@@ -148,14 +158,55 @@ const acceptFriendRequest = async (req, res) => {
         await User.findByIdAndUpdate(friendRequest.from, { $push: { friends: friendRequest.to._id } });
         await User.findByIdAndUpdate(friendRequest.to, { $push: { friends: friendRequest.from._id } });
 
+        // Delete any existing notifications about this friend request
+        await Notification.deleteMany({
+            $or: [
+                { 
+                    recipient: friendRequest.from._id,
+                    sender: friendRequest.to._id,
+                    type: 'FRIEND_REQUEST_ACCEPTED'
+                },
+                {
+                    recipient: friendRequest.to._id,
+                    sender: friendRequest.from._id,
+                    type: 'FRIEND_REQUEST'
+                }
+            ]
+        });
+
         // Create notification for the sender about acceptance
-        await Notification.create({
+        const notification = await Notification.create({
             recipient: friendRequest.from._id,
             sender: friendRequest.to._id,
             type: 'FRIEND_REQUEST_ACCEPTED',
             message: `${toUser.username} accepted your friend request`,
-            actionRequired: false
+            actionRequired: false,
+            read: false
         });
+
+        // Get updated unread count for both users
+        const [recipientUnreadCount, senderUnreadCount] = await Promise.all([
+            Notification.countDocuments({
+                recipient: friendRequest.from._id,
+                read: false
+            }),
+            Notification.countDocuments({
+                recipient: friendRequest.to._id,
+                read: false
+            })
+        ]);
+
+        // Emit WebSocket events
+        const io = global.io;
+        if (io) {
+            // Emit to sender (the one who sent the original request)
+            io.to(friendRequest.from._id.toString()).emit('newNotification', notification);
+            io.to(friendRequest.from._id.toString()).emit('notificationCount', { count: recipientUnreadCount });
+
+            // Emit to recipient (the one who accepted)
+            io.to(friendRequest.to._id.toString()).emit('notificationCount', { count: senderUnreadCount });
+            io.to(friendRequest.to._id.toString()).emit('notificationDeleted');
+        }
 
         return res.status(200).json({
             success: true,
@@ -215,14 +266,46 @@ const rejectFriendRequest = async (req, res) => {
         friendRequest.status = 'Rejected';
         await friendRequest.save();
 
+        // Delete the original friend request notification
+        await Notification.deleteMany({
+            recipient: friendRequest.to._id,
+            sender: friendRequest.from._id,
+            type: 'FRIEND_REQUEST'
+        });
+
         // Create notification for the sender about rejection
-        await Notification.create({
+        const notification = await Notification.create({
             recipient: friendRequest.from._id,
             sender: friendRequest.to._id,
             type: 'FRIEND_REQUEST_REJECTED',
             message: `${friendRequest.to.username} rejected your friend request`,
-            actionRequired: false
+            actionRequired: false,
+            read: false
         });
+
+        // Get updated unread count for both users
+        const [recipientUnreadCount, senderUnreadCount] = await Promise.all([
+            Notification.countDocuments({
+                recipient: friendRequest.from._id,
+                read: false
+            }),
+            Notification.countDocuments({
+                recipient: friendRequest.to._id,
+                read: false
+            })
+        ]);
+
+        // Emit WebSocket events
+        const io = global.io;
+        if (io) {
+            // Emit to sender (the one who sent the original request)
+            io.to(friendRequest.from._id.toString()).emit('newNotification', notification);
+            io.to(friendRequest.from._id.toString()).emit('notificationCount', { count: recipientUnreadCount });
+
+            // Emit to recipient (the one who rejected)
+            io.to(friendRequest.to._id.toString()).emit('notificationCount', { count: senderUnreadCount });
+            io.to(friendRequest.to._id.toString()).emit('notificationDeleted');
+        }
 
         return res.status(200).json({
             success: true,

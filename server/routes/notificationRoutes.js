@@ -9,6 +9,12 @@ router.use(protect);
 // Get all notifications for the authenticated user
 router.get('/', notificationController.getNotifications);
 
+// Get a single notification
+router.get('/:notificationId', notificationController.getNotification);
+
+// Delete a notification
+router.delete('/:notificationId', notificationController.deleteNotification);
+
 // Mark a specific notification as read
 router.patch('/:notificationId/read', notificationController.markAsRead);
 
