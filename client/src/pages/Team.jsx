@@ -144,23 +144,24 @@ const Team = () => {
                   Team Members
                 </h3>
               </div>
-              <div className="flex-1 space-y-3 min-h-0 overflow-y-auto scrollbar-hide">
+              <div className="flex-1 space-y-3 min-h-0 overflow-visible">
                 {team.members?.map((member) => (
                   <motion.div 
                     key={member._id} 
-                    className="flex items-center gap-3 p-2 rounded-lg hover:bg-venom-purple/10 transition-colors"
+                    className="flex items-center gap-3 p-2 rounded-lg hover:bg-venom-purple/10 transition-colors group relative hover:z-10 cursor-pointer"
                     whileHover={{ 
                       x: 5,
                       backgroundColor: "rgba(147, 51, 234, 0.1)",
                       transition: { duration: 0.1 }
                     }}
+                    onClick={() => navigate(`/dashboard/profile/${member._id}`)}
                   >
                     <div className="w-8 h-8 rounded-full bg-venom-purple/20 flex items-center justify-center border border-venom-purple/30">
                       {member.username?.charAt(0)?.toUpperCase() || '?'}
                     </div>
-                    <div className="flex flex-col">
-                      <span className="font-medium">{member.username || 'Unknown Member'}</span>
-                      <span className="text-sm text-ghost-lilac/60">{member.email}</span>
+                    <div className="flex flex-col overflow-visible">
+                      <span className="font-medium whitespace-nowrap">{member.username || 'Unknown Member'}</span>
+                      <span className="text-sm text-ghost-lilac/60 whitespace-nowrap">{member.email}</span>
                     </div>
                   </motion.div>
                 ))}
