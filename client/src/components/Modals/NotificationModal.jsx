@@ -138,23 +138,28 @@ const NotificationModal = ({ isOpen, onClose }) => {
       let endpoint;
       let requestData;
       
+      // Normalize action to lowercase for consistency
+      const normalizedAction = action.toLowerCase();
+      
       switch (type) {
         case 'FRIEND_REQUEST':
-          endpoint = `/api/friend-requests/${action}`;
+          endpoint = `/api/friend-requests/${normalizedAction}`;
           requestData = { requestId: actionData.requestId };
           break;
         case 'TEAM_INVITE':
-          endpoint = `/api/teams/invite/${action}`;
-          requestData = { inviteId: actionData.inviteId };
+          endpoint = `/api/teams/handleTeamInvite`;
+          requestData = { inviteId: actionData.inviteId, action: normalizedAction };
           break;
         case 'TEAM_JOIN_REQUEST':
-          endpoint = `/api/teams/join-request/${action}`;
-          requestData = { requestId: actionData.requestId };
+          endpoint = `/api/teams/handleJoinRequest`;
+          requestData = { requestId: actionData.requestId, action: normalizedAction };
           break;
         default:
           console.error('Unknown notification type:', type);
           return;
       }
+
+      console.log('Sending action request:', { endpoint, requestData });
 
       // First try to perform the action
       const actionResponse = await api.post(endpoint, requestData);
@@ -169,6 +174,7 @@ const NotificationModal = ({ isOpen, onClose }) => {
             actionRequired: prev.actionRequired.filter(n => n._id !== notificationId),
             unreadCount: Math.max(0, prev.unreadCount - 1)
           }));
+          setUnreadCount(prev => Math.max(0, prev - 1)); // Update global count
         } catch (deleteError) {
           // If notification is already gone, that's fine
           if (deleteError.response?.status !== 404) {
@@ -176,7 +182,7 @@ const NotificationModal = ({ isOpen, onClose }) => {
           }
         }
         
-        toast.success(`${type.toLowerCase().replace('_', ' ')} ${action}ed`, {
+        toast.success(`${type.toLowerCase().replace(/_/g, ' ')} ${action}ed`, {
           position: "bottom-right",
           theme: "dark",
           style: {

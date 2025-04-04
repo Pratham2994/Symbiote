@@ -3,6 +3,16 @@ const Team = require('../models/Team');
 const User = require('../models/User');
 const Notification = require('../models/Notification');
 
+const emitNotificationUpdate = async (userId) => {
+  try {
+    const unreadCount = await Notification.countDocuments({ recipient: userId, read: false });
+    console.log(`Emitting notification count update for user ${userId}:`, unreadCount);
+    global.io.to(userId.toString()).emit('notificationCount', { count: unreadCount });
+  } catch (error) {
+    console.error('Error emitting notification update:', error);
+  }
+};
+
 const joinTeamRequest = async(req, res)=>{
     try{
         const userId = req.user.id
@@ -48,7 +58,7 @@ const joinTeamRequest = async(req, res)=>{
 
         // Create notification for the team leader
         const user = await User.findById(userId);
-        await Notification.create({
+        const notification = await Notification.create({
             recipient: team.createdBy._id,
             sender: userId,
             type: 'TEAM_JOIN_REQUEST',
@@ -61,6 +71,13 @@ const joinTeamRequest = async(req, res)=>{
                 teamId: teamId
             }
         });
+
+        // Emit WebSocket events for the team leader
+        const io = global.io;
+        if (io) {
+            io.to(team.createdBy._id.toString()).emit('newNotification', notification);
+            await emitNotificationUpdate(team.createdBy._id);
+        }
 
         return res.status(201).json({
             success: true,
@@ -79,17 +96,29 @@ const joinTeamRequest = async(req, res)=>{
 
 const handleJoinRequest = async(req, res)=>{
     try{
-        const userId = req.user.id
+        const userId = req.user.id;
         const {requestId, action} = req.body;
+        
+        // Validate inputs
         if(!requestId || !action){
             return res.status(400).json({
                 success: false,
-                messsage: "requestId and action required"
+                message: "requestId and action required"
+            });
+        }
+
+        // Normalize action to uppercase first letter
+        const normalizedAction = action.charAt(0).toUpperCase() + action.slice(1).toLowerCase();
+        
+        if (!['Accept', 'Reject'].includes(normalizedAction)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid action. Must be 'accept' or 'reject'"
             });
         }
 
         const request = await JoinRequest.findById(requestId)
-            .populate('team', 'members createdBy')
+            .populate('team', 'members createdBy name')
             .populate('user', 'username');
         
         if(!request){
@@ -111,30 +140,63 @@ const handleJoinRequest = async(req, res)=>{
         if(!authTeamMember){
             return res.status(400).json({
                 success: false,
-                message: "You are unathorized to handle this request"
+                message: "You are unauthorized to handle this request"
             });
         }
 
-        if(action === "Reject"){
+        // Delete any existing notifications about this join request
+        await Notification.deleteMany({
+            $or: [
+                {
+                    recipient: userId,
+                    sender: request.user._id,
+                    type: 'TEAM_JOIN_REQUEST'
+                },
+                {
+                    recipient: request.user._id,
+                    sender: userId,
+                    type: { $in: ['TEAM_JOIN_REQUEST_ACCEPTED', 'TEAM_JOIN_REQUEST_REJECTED'] }
+                }
+            ]
+        });
+
+        if(normalizedAction === "Reject"){
             request.status = "Rejected"
             await request.save()
 
             // Create notification for the requester about rejection
-            await Notification.create({
+            const notification = await Notification.create({
                 recipient: request.user._id,
                 sender: userId,
                 type: 'TEAM_JOIN_REQUEST_REJECTED',
                 team: request.team._id,
                 message: `Your request to join team ${request.team.name} was rejected`,
-                actionRequired: false
+                actionRequired: false,
+                read: false,
+                seen: false
             });
+
+            // Get updated unread count
+            const recipientUnreadCount = await Notification.countDocuments({
+                recipient: request.user._id,
+                read: false
+            });
+
+            // Emit WebSocket events
+            const io = global.io;
+            if (io) {
+                io.to(request.user._id.toString()).emit('newNotification', notification);
+                io.to(request.user._id.toString()).emit('notificationCount', { count: recipientUnreadCount });
+                io.to(userId.toString()).emit('notificationDeleted');
+                await emitNotificationUpdate(userId);
+            }
 
             return res.status(200).json({
                 success: true,
                 message: `Request ${request.status}`,
             })
         }
-        else if(action === "Accept"){
+        else if(normalizedAction === "Accept"){
             const fromUser = request.user.toString();
             const isUserInTeam = request.team.members.some(member => member.toString() === fromUser);
 
@@ -157,14 +219,31 @@ const handleJoinRequest = async(req, res)=>{
             await team.save();
 
             // Create notification for the requester about acceptance
-            await Notification.create({
+            const notification = await Notification.create({
                 recipient: request.user._id,
                 sender: userId,
                 type: 'TEAM_JOIN_REQUEST_ACCEPTED',
                 team: request.team._id,
                 message: `Your request to join team ${request.team.name} was accepted`,
-                actionRequired: false
+                actionRequired: false,
+                read: false,
+                seen: false
             });
+
+            // Get updated unread count
+            const recipientUnreadCount = await Notification.countDocuments({
+                recipient: request.user._id,
+                read: false
+            });
+
+            // Emit WebSocket events
+            const io = global.io;
+            if (io) {
+                io.to(request.user._id.toString()).emit('newNotification', notification);
+                io.to(request.user._id.toString()).emit('notificationCount', { count: recipientUnreadCount });
+                io.to(userId.toString()).emit('notificationDeleted');
+                await emitNotificationUpdate(userId);
+            }
 
             return res.status(200).json({
                 success: true,
@@ -172,6 +251,7 @@ const handleJoinRequest = async(req, res)=>{
                 team
             });
         }
+
         return res.status(400).json({
             success: false,
             message: "Invalid action",
@@ -185,6 +265,6 @@ const handleJoinRequest = async(req, res)=>{
             message: "internal server error"
         });
     }
-} 
+}
 
 module.exports = {joinTeamRequest, handleJoinRequest}
