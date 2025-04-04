@@ -25,15 +25,15 @@ export const team = [
   },
   {
     name: "Varnika Bajpai",
-    role: "Role 2"
+    role: "Backend & ML developer"
   },
   {
     name: "Krishn Makwana",
-    role: "Role 3"
+    role: "Backend & ML developer"
   },
   {
     name: "Diya Parelkar",
-    role: "Role 4"
+    role: "ML and Algorithm Developer"
   }
 ];
 

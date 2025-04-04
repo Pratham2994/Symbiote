@@ -135,4 +135,4 @@ def analyze_resume(file_path):
     return {
         "frontend_score": final_frontend_score, 
         "backend_score": final_backend_score
-    }
+    } 
