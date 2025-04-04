@@ -94,7 +94,7 @@ export default function Hackathons() {
         return [...comps].sort((a, b) => {
             switch (sortBy) {
                 case "date":
-                    return new Date(a.competitionStartDate) ;
+                    return new Date(b.competitionStartDate).getTime() - new Date(a.competitionStartDate).getTime();
                 case "prize":
                     const aAmount = a.prize ? parseInt(a.prize.replace(/[^0-9]/g, "")) : 0;
                     const bAmount = b.prize ? parseInt(b.prize.replace(/[^0-9]/g, "")) : 0;
@@ -102,7 +102,7 @@ export default function Hackathons() {
                 case "teams":
                     return (b.registeredTeams?.length || 0) - (a.registeredTeams?.length || 0);
                 case "deadline":
-                    return new Date(a.registrationDeadline) ;
+                    return new Date(b.registrationDeadline).getTime() - new Date(a.registrationDeadline).getTime();
                 default:
                     return 0;
             }
@@ -173,7 +173,7 @@ export default function Hackathons() {
                             <select
                                 value={filterStatus}
                                 onChange={(e) => setFilterStatus(e.target.value)}
-                                className="w-full md:w-48 px-3 py-2 bg-symbiote-purple/10 border border-venom-purple/20 rounded-lg focus:outline-none focus:border-venom-purple/40 hover:shadow-neon transition-all text-ghost-lilac cursor-pointer [&>option]:bg-[#1F0B33] [&>option]:text-ghost-lilac [&>option]:border-none [&>option:checked]:bg-symbiote-purple/40"
+                                className="w-full md:w-48 px-3 py-2 bg-symbiote-purple/10 border border-venom-purple/20 rounded-lg focus:outline-none focus:border-venom-purple/40 hover:shadow-neon transition-all text-ghost-lilac cursor-pointer [&>option]:bg-[#1F0B33] [&>option]:text-ghost-lilac [&>option]:border-none [&>option:checked]:bg-symbiote-purple/40 [-moz-appearance:none] [&::-moz-focus-inner]:border-0"
                             >
                                 <option value="All">All Hackathons</option>
                                 <option value="Upcoming">Upcoming</option>
@@ -191,7 +191,7 @@ export default function Hackathons() {
                             <select
                                 value={prizeFilter}
                                 onChange={(e) => setPrizeFilter(e.target.value)}
-                                className="w-full md:w-48 px-3 py-2 bg-symbiote-purple/10 border border-venom-purple/20 rounded-lg focus:outline-none focus:border-venom-purple/40 hover:shadow-neon transition-all text-ghost-lilac cursor-pointer [&>option]:bg-[#1F0B33] [&>option]:text-ghost-lilac [&>option]:border-none [&>option:checked]:bg-symbiote-purple/40"
+                                className="w-full md:w-48 px-3 py-2 bg-symbiote-purple/10 border border-venom-purple/20 rounded-lg focus:outline-none focus:border-venom-purple/40 hover:shadow-neon transition-all text-ghost-lilac cursor-pointer [&>option]:bg-[#1F0B33] [&>option]:text-ghost-lilac [&>option]:border-none [&>option:checked]:bg-symbiote-purple/40 [-moz-appearance:none] [&::-moz-focus-inner]:border-0"
                             >
                                 <option value="all">All Prizes</option>
                                 <option value="high">High (₹50k+)</option>
@@ -209,7 +209,7 @@ export default function Hackathons() {
                             <select
                                 value={feeFilter}
                                 onChange={(e) => setFeeFilter(e.target.value)}
-                                className="w-full md:w-48 px-3 py-2 bg-symbiote-purple/10 border border-venom-purple/20 rounded-lg focus:outline-none focus:border-venom-purple/40 hover:shadow-neon transition-all text-ghost-lilac cursor-pointer [&>option]:bg-[#1F0B33] [&>option]:text-ghost-lilac [&>option]:border-none [&>option:checked]:bg-symbiote-purple/40"
+                                className="w-full md:w-48 px-3 py-2 bg-symbiote-purple/10 border border-venom-purple/20 rounded-lg focus:outline-none focus:border-venom-purple/40 hover:shadow-neon transition-all text-ghost-lilac cursor-pointer [&>option]:bg-[#1F0B33] [&>option]:text-ghost-lilac [&>option]:border-none [&>option:checked]:bg-symbiote-purple/40 [-moz-appearance:none] [&::-moz-focus-inner]:border-0"
                             >
                                 <option value="all">All</option>
                                 <option value="free">Free</option>
@@ -226,7 +226,7 @@ export default function Hackathons() {
                             <select
                                 value={sortBy}
                                 onChange={(e) => setSortBy(e.target.value)}
-                                className="w-full md:w-48 px-3 py-2 bg-symbiote-purple/10 border border-venom-purple/20 rounded-lg focus:outline-none focus:border-venom-purple/40 hover:shadow-neon transition-all text-ghost-lilac cursor-pointer [&>option]:bg-[#1F0B33] [&>option]:text-ghost-lilac [&>option]:border-none [&>option:checked]:bg-symbiote-purple/40"
+                                className="w-full md:w-48 px-3 py-2 bg-symbiote-purple/10 border border-venom-purple/20 rounded-lg focus:outline-none focus:border-venom-purple/40 hover:shadow-neon transition-all text-ghost-lilac cursor-pointer [&>option]:bg-[#1F0B33] [&>option]:text-ghost-lilac [&>option]:border-none [&>option:checked]:bg-symbiote-purple/40 [-moz-appearance:none] [&::-moz-focus-inner]:border-0"
                             >
                                 <option value="date">Start Date</option>
                                 <option value="prize">Prize Pool</option>
