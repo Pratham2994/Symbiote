@@ -31,8 +31,7 @@ const NotificationModal = ({ isOpen, onClose }) => {
       setUnreadCount(prev => Math.max(0, prev - 1)); // Update global count
       dismissTimeouts.delete(notificationId);
     } catch (error) {
-      console.error('Error auto-dismissing notification:', error);
-      // If notification is already gone (404) or any other error, just update UI
+      // Silently handle the error and update UI
       setNotifications(prev => ({
         ...prev,
         nonActionRequired: prev.nonActionRequired.filter(n => n._id !== notificationId),
