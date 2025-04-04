@@ -358,9 +358,13 @@ const Hackathon = () => {
                                 <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-br from-symbiote-purple/20 to-venom-purple/10 z-20"></div>
                                 <div className="absolute inset-0 opacity-0 group-hover:opacity-100 shadow-[0_0_50px_25px_rgba(167,68,195,0.4)] transition-opacity duration-300 z-10"></div>
                                 <img
-                                    src={imagePath || "https://images.unsplash.com/..."}
+                                    src={imagePath ? `${imagePath}` : "https://images.unsplash.com/..."}
                                     alt={title}
                                     className="w-full object-cover shadow-2xl transform group-hover:scale-105 transition-transform duration-300 relative z-0"
+                                    onError={(e) => {
+                                        e.target.onerror = null;
+                                        e.target.src = "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80";
+                                    }}
                                 />
                             </div>
                         </div>
@@ -415,7 +419,7 @@ const Hackathon = () => {
                                     </div>
                                     <div className="flex items-center gap-2 text-sm">
                                         <Award className="w-4 h-4 text-venom-purple" />
-                                        <span>Registration Fee: {registrationFee ? `$${registrationFee}` : "Free"}</span>
+                                        <span>Registration Fee: {registrationFee ? `${registrationFee}` : "Free"}</span>
                                     </div>
                                     <div className="flex items-center gap-2 text-sm">
                                         <Users className="w-4 h-4 text-venom-purple" />

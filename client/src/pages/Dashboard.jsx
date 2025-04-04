@@ -38,8 +38,14 @@ export default function Dashboard() {
   useEffect(() => {
     const loadCompetitions = async () => {
       try {
-        const data = await fetchCompetitions(3);
-        setCompetitions(data);
+        const data = await fetchCompetitions();
+        // Filter out past competitions and sort by start date
+        const currentDate = new Date();
+        const sortedCompetitions = [...data]
+          .filter(comp => new Date(comp.competitionStartDate) > currentDate)
+          .sort((a, b) => new Date(a.competitionStartDate).getTime() - new Date(b.competitionStartDate).getTime())
+          .slice(0, 3);
+        setCompetitions(sortedCompetitions);
       } catch (error) {
         console.error('Error loading competitions:', error);
       } finally {

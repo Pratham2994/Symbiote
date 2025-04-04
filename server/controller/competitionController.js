@@ -59,12 +59,19 @@ const createCompetition = async (req, res) => {
             }
 
             // Validate registration fee if provided
-            if (registrationFee !== undefined && (isNaN(registrationFee) || registrationFee < 0)) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Registration fee must be a non-negative number'
-                });
+            if (registrationFee !== undefined) {
+                const isNumberLike = !isNaN(registrationFee) && Number(registrationFee) >= 0;
+                const isFreeString = typeof registrationFee === 'string' && registrationFee.toLowerCase() === 'free';
+            
+                if (!isNumberLike && !isFreeString) {
+                    return res.status(400).json({
+                        success: false,
+                        message: 'Registration fee must be a non-negative number or the string "FREE"'
+                    });
+                }
             }
+            
+            
 
             // Validate tags if provided
             if (tags && (!Array.isArray(tags) || tags.some(tag => typeof tag !== 'string'))) {
@@ -128,7 +135,9 @@ const getAllCompetitions = async (req, res) => {
         const skip = (page - 1) * limit;
 
         // Build filter based on query parameters
-        const filter = {};
+        const filter = {
+            competitionEndDate: { $gt: new Date() }  // Only include competitions that haven't ended yet
+        };
         if (req.query.ongoing !== undefined) {
             filter.ongoing = req.query.ongoing === 'true';
         }

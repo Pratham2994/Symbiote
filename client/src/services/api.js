@@ -1,6 +1,6 @@
 const API_BASE_URL = 'http://localhost:5000/api';
 
-export const fetchCompetitions = async (limit = 3) => {
+export const fetchCompetitions = async (limit = 1000) => {
   try {
     const response = await fetch(`${API_BASE_URL}/competitions?limit=${limit}`, {
       credentials: 'include',

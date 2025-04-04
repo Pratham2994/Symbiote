@@ -15,7 +15,7 @@ const competitionSchema = new mongoose.Schema({
     maxTeamSize: { type: Number, default: 4 },
     prize: { type: String },
     registrationDeadline: { type: Date },
-    registrationFee: { type: Number, default: 0 },
+    registrationFee: { type: mongoose.Schema.Types.Mixed, default: 0 },
     
     contact: { type: String },
 
