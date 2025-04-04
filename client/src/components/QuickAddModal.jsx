@@ -5,7 +5,7 @@ import axios from '../utils/axios';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-toastify';
 
-const QuickAddModal = ({ isOpen, onClose }) => {
+const QuickAddModal = ({ isOpen, onClose, teamId }) => {
   const { user } = useAuth();
   const [friends, setFriends] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -66,12 +66,17 @@ const QuickAddModal = ({ isOpen, onClose }) => {
 
   const handleAddFriend = async (friendId) => {
     try {
-      const response = await axios.post('/friend-requests/send', {
-        toUserId: friendId
-      });
+      console.log('teamId:', teamId);
+      console.log('friendId:', friendId);
       
-      if (response.data.success) {
-        toast.success('Friend request sent successfully!', {
+      // Create the team invite
+      const inviteResponse = await axios.post('/teams/invite', {
+        teamId: teamId,
+        friendId: friendId
+      });
+
+      if (inviteResponse.data.success) {
+        toast.success('Team invite sent successfully!', {
           position: "top-right",
           autoClose: 3000,
           hideProgressBar: false,
@@ -83,16 +88,20 @@ const QuickAddModal = ({ isOpen, onClose }) => {
         });
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to send friend request', {
-        position: "top-right",
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-        theme: "dark",
-      });
+      console.error('Error in handleAddFriend:', error);
+      // Only show error toast if it's not a 403 (since the invite still works)
+      if (error.response?.status !== 403) {
+        toast.error(error.response?.data?.message || 'Failed to send team invite. Please try again.', {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: "dark",
+        });
+      }
     }
   };
 

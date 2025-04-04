@@ -3,6 +3,16 @@ const Team = require('../models/Team');
 const User = require('../models/User');
 const Notification = require('../models/Notification');
 
+const emitNotificationUpdate = async (userId) => {
+  try {
+    const unreadCount = await Notification.countDocuments({ recipient: userId, read: false });
+    console.log(`Emitting notification count update for user ${userId}:`, unreadCount);
+    global.io.to(userId.toString()).emit('notificationCount', { count: unreadCount });
+  } catch (error) {
+    console.error('Error emitting notification update:', error);
+  }
+};
+
 const inviteToTeam = async(req, res)=>{
     try{
         const userId = req.user.id
@@ -68,8 +78,15 @@ const inviteToTeam = async(req, res)=>{
         });
 
         // Create notification for the friend
-        const fromUser = await User.findById(userId);
-        await Notification.create({
+        const fromUser = await User.findById(userId).select('username');
+        if (!fromUser) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found"
+            });
+        }
+
+        const notification = await Notification.create({
             recipient: friendId,
             sender: userId,
             type: 'TEAM_INVITE',
@@ -80,8 +97,21 @@ const inviteToTeam = async(req, res)=>{
             actionData: {
                 inviteId: teamInvite._id,
                 teamId: teamId
-            }
+            },
+            read: false,
+            seen: false
         });
+
+        // Populate the notification with user data before emitting
+        await notification.populate('sender', 'username');
+        await notification.populate('team', 'name');
+
+        // Emit WebSocket events for the friend
+        const io = global.io;
+        if (io) {
+            io.to(friendId.toString()).emit('newNotification', notification);
+            await emitNotificationUpdate(friendId);
+        }
 
         return res.status(201).json({
             success: true,
@@ -101,20 +131,30 @@ const inviteToTeam = async(req, res)=>{
 
 const handleTeamInvite = async (req, res) => {
     try {
-        const userId = req.user.id
+        const userId = req.user.id;
         const { inviteId, action } = req.body;
 
         // Validate input
         if (!inviteId || !action) {
             return res.status(400).json({
                 success: false,
-                message: "inviteId and action are required"
+                message: "inviteId and action required"
+            });
+        }
+
+        // Normalize action to uppercase first letter
+        const normalizedAction = action.charAt(0).toUpperCase() + action.slice(1).toLowerCase();
+        
+        if (!['Accept', 'Reject'].includes(normalizedAction)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid action. Must be 'accept' or 'reject'"
             });
         }
 
         // Find the invitation
         const invite = await TeamInvite.findById(inviteId)
-            .populate('team', 'members competition')
+            .populate('team', 'members competition name')
             .populate('fromUser', 'username');
             
         if (!invite) {
@@ -140,20 +180,65 @@ const handleTeamInvite = async (req, res) => {
             });
         }
 
-        // Handle rejection
-        if (action === "Reject") {
+        // Delete any existing notifications about this team invite
+        await Notification.deleteMany({
+            $or: [
+                {
+                    recipient: userId,
+                    sender: invite.fromUser._id,
+                    type: 'TEAM_INVITE'
+                },
+                {
+                    recipient: invite.fromUser._id,
+                    sender: userId,
+                    type: { $in: ['TEAM_INVITE_ACCEPTED', 'TEAM_INVITE_REJECTED'] }
+                }
+            ]
+        });
+
+        if (normalizedAction === "Reject") {
             invite.status = "Rejected";
             await invite.save();
 
+            // Get the current user's data
+            const currentUser = await User.findById(userId).select('username');
+            if (!currentUser) {
+                return res.status(404).json({
+                    success: false,
+                    message: "User not found"
+                });
+            }
+
             // Create notification for the sender about rejection
-            await Notification.create({
+            const notification = await Notification.create({
                 recipient: invite.fromUser._id,
                 sender: userId,
                 type: 'TEAM_INVITE_REJECTED',
                 team: invite.team._id,
-                message: `${req.user.username} rejected your team invite`,
-                actionRequired: false
+                message: `${currentUser.username} rejected your team invite for ${invite.team.name}`,
+                actionRequired: false,
+                read: false,
+                seen: false
             });
+
+            // Populate the notification with user data before emitting
+            await notification.populate('sender', 'username');
+            await notification.populate('team', 'name');
+
+            // Get updated unread count
+            const recipientUnreadCount = await Notification.countDocuments({
+                recipient: invite.fromUser._id,
+                read: false
+            });
+
+            // Emit WebSocket events
+            const io = global.io;
+            if (io) {
+                io.to(invite.fromUser._id.toString()).emit('newNotification', notification);
+                io.to(invite.fromUser._id.toString()).emit('notificationCount', { count: recipientUnreadCount });
+                io.to(userId.toString()).emit('notificationDeleted');
+                await emitNotificationUpdate(userId);
+            }
 
             return res.status(200).json({
                 success: true,
@@ -161,8 +246,7 @@ const handleTeamInvite = async (req, res) => {
             });
         }
 
-        // Handle acceptance
-        if (action === "Accept") {
+        if (normalizedAction === "Accept") {
             // Check if the user is already a member of the team
             const isUserInTeam = invite.team.members.some(member => member.toString() === userId);
             if (isUserInTeam) {
@@ -194,15 +278,45 @@ const handleTeamInvite = async (req, res) => {
             invite.status = "Accepted";
             await invite.save();
 
+            // Get the current user's data
+            const currentUser = await User.findById(userId).select('username');
+            if (!currentUser) {
+                return res.status(404).json({
+                    success: false,
+                    message: "User not found"
+                });
+            }
+
             // Create notification for the sender about acceptance
-            await Notification.create({
+            const notification = await Notification.create({
                 recipient: invite.fromUser._id,
                 sender: userId,
                 type: 'TEAM_INVITE_ACCEPTED',
                 team: invite.team._id,
-                message: `${req.user.username} accepted your team invite`,
-                actionRequired: false
+                message: `${currentUser.username} accepted your team invite for ${invite.team.name}`,
+                actionRequired: false,
+                read: false,
+                seen: false
             });
+
+            // Populate the notification with user data before emitting
+            await notification.populate('sender', 'username');
+            await notification.populate('team', 'name');
+
+            // Get updated unread count
+            const recipientUnreadCount = await Notification.countDocuments({
+                recipient: invite.fromUser._id,
+                read: false
+            });
+
+            // Emit WebSocket events
+            const io = global.io;
+            if (io) {
+                io.to(invite.fromUser._id.toString()).emit('newNotification', notification);
+                io.to(invite.fromUser._id.toString()).emit('notificationCount', { count: recipientUnreadCount });
+                io.to(userId.toString()).emit('notificationDeleted');
+                await emitNotificationUpdate(userId);
+            }
 
             return res.status(200).json({
                 success: true,
@@ -212,7 +326,6 @@ const handleTeamInvite = async (req, res) => {
             });
         }
 
-        // Handle invalid action
         return res.status(400).json({
             success: false,
             message: "Invalid action"
@@ -227,4 +340,4 @@ const handleTeamInvite = async (req, res) => {
     }
 };
 
-module.exports =  {inviteToTeam, handleTeamInvite}
+module.exports =  {inviteToTeam, handleTeamInvite};

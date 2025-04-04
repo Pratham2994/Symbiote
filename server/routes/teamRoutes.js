@@ -68,7 +68,7 @@ router.post('/joinRequest', protect , joinTeamRequest)
 
 router.post('/handleJoinRequest', protect , handleJoinRequest)
 
-router.post('/invite', inviteToTeam)
+router.post('/invite', protect , inviteToTeam)
 
 router.post('/handleTeamInvite', protect , handleTeamInvite)
 

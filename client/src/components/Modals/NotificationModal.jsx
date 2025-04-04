@@ -32,15 +32,14 @@ const NotificationModal = ({ isOpen, onClose }) => {
       dismissTimeouts.delete(notificationId);
     } catch (error) {
       console.error('Error auto-dismissing notification:', error);
-      if (error.response?.status === 404) {
-        // If notification is already gone, just update UI
-        setNotifications(prev => ({
-          ...prev,
-          nonActionRequired: prev.nonActionRequired.filter(n => n._id !== notificationId),
-          unreadCount: Math.max(0, prev.unreadCount - 1)
-        }));
-        setUnreadCount(prev => Math.max(0, prev - 1)); // Update global count
-      }
+      // If notification is already gone (404) or any other error, just update UI
+      setNotifications(prev => ({
+        ...prev,
+        nonActionRequired: prev.nonActionRequired.filter(n => n._id !== notificationId),
+        unreadCount: Math.max(0, prev.unreadCount - 1)
+      }));
+      setUnreadCount(prev => Math.max(0, prev - 1)); // Update global count
+      dismissTimeouts.delete(notificationId);
     }
   }, [dismissTimeouts, setUnreadCount]);
 

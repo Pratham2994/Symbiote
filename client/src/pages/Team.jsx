@@ -270,7 +270,11 @@ const Team = () => {
           </div>
         </div>
       </footer>
-      <QuickAddModal isOpen={isQuickAddOpen} onClose={() => setIsQuickAddOpen(false)} />
+      <QuickAddModal 
+        isOpen={isQuickAddOpen} 
+        onClose={() => setIsQuickAddOpen(false)} 
+        teamId={teamId}
+      />
       <style>{`
         .scrollbar-hide {
           -ms-overflow-style: none;
