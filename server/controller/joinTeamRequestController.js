@@ -164,6 +164,15 @@ const handleJoinRequest = async(req, res)=>{
             request.status = "Rejected"
             await request.save()
 
+            // Get the current user's data
+            const currentUser = await User.findById(userId).select('username');
+            if (!currentUser) {
+                return res.status(404).json({
+                    success: false,
+                    message: "User not found"
+                });
+            }
+
             // Create notification for the requester about rejection
             const notification = await Notification.create({
                 recipient: request.user._id,
@@ -175,6 +184,10 @@ const handleJoinRequest = async(req, res)=>{
                 read: false,
                 seen: false
             });
+
+            // Populate the notification with user data before emitting
+            await notification.populate('sender', 'username');
+            await notification.populate('team', 'name');
 
             // Get updated unread count
             const recipientUnreadCount = await Notification.countDocuments({

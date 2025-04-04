@@ -10,8 +10,11 @@ const NOTIFICATION_TYPES = {
   TEAM_JOIN_REQUEST: 'TEAM_JOIN_REQUEST',
   // Non-actionable notifications
   FRIEND_REQUEST_ACCEPTED: 'FRIEND_REQUEST_ACCEPTED',
+  FRIEND_REQUEST_REJECTED: 'FRIEND_REQUEST_REJECTED',
   TEAM_INVITE_ACCEPTED: 'TEAM_INVITE_ACCEPTED',
-  TEAM_JOIN_ACCEPTED: 'TEAM_JOIN_ACCEPTED'
+  TEAM_INVITE_REJECTED: 'TEAM_INVITE_REJECTED',
+  TEAM_JOIN_REQUEST_ACCEPTED: 'TEAM_JOIN_REQUEST_ACCEPTED',
+  TEAM_JOIN_REQUEST_REJECTED: 'TEAM_JOIN_REQUEST_REJECTED'
 };
 
 const notificationController = {
@@ -114,7 +117,7 @@ const notificationController = {
         case NOTIFICATION_TYPES.TEAM_INVITE_ACCEPTED:
           message = `${sender.username} accepted your team invitation`;
           break;
-        case NOTIFICATION_TYPES.TEAM_JOIN_ACCEPTED:
+        case NOTIFICATION_TYPES.TEAM_JOIN_REQUEST_ACCEPTED:
           message = `${sender.username} accepted your request to join the team`;
           break;
         default:
