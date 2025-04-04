@@ -396,25 +396,52 @@ export default function Friends() {
                         </div>
                       </div>
                       <button
-                        onClick={(e) => {
+                        onClick={async (e) => {
                           e.stopPropagation(); // Prevent card click when clicking delete
-                          // Delete functionality will be added later
-                          toast.info('Delete functionality coming soon!', {
-                            position: "top-right",
-                            autoClose: 3000,
-                            hideProgressBar: false,
-                            closeOnClick: true,
-                            pauseOnHover: true,
-                            draggable: true,
-                            progress: undefined,
-                            theme: "dark",
-                            style: {
-                              background: '#0B0B0B',
-                              border: '1px solid rgba(139, 92, 246, 0.2)',
-                              boxShadow: '0 0 10px rgba(139, 92, 246, 0.1)',
-                              color: '#E5E7EB'
+                          try {
+                            const response = await axios.post('/searchForFriends/remove', {
+                              friendId: friend._id
+                            });
+
+                            if (response.data.success) {
+                              // Remove friend from local state
+                              setFriends(prevFriends => prevFriends.filter(f => f._id !== friend._id));
+                              
+                              toast.success('Friend removed successfully', {
+                                position: "top-right",
+                                autoClose: 3000,
+                                hideProgressBar: false,
+                                closeOnClick: true,
+                                pauseOnHover: true,
+                                draggable: true,
+                                progress: undefined,
+                                theme: "dark",
+                                style: {
+                                  background: '#0B0B0B',
+                                  border: '1px solid rgba(139, 92, 246, 0.2)',
+                                  boxShadow: '0 0 10px rgba(139, 92, 246, 0.1)',
+                                  color: '#E5E7EB'
+                                }
+                              });
                             }
-                          });
+                          } catch (error) {
+                            toast.error(error.response?.data?.message || 'Failed to remove friend', {
+                              position: "top-right",
+                              autoClose: 3000,
+                              hideProgressBar: false,
+                              closeOnClick: true,
+                              pauseOnHover: true,
+                              draggable: true,
+                              progress: undefined,
+                              theme: "dark",
+                              style: {
+                                background: '#0B0B0B',
+                                border: '1px solid rgba(139, 92, 246, 0.2)',
+                                boxShadow: '0 0 10px rgba(139, 92, 246, 0.1)',
+                                color: '#E5E7EB'
+                              }
+                            });
+                          }
                         }}
                         className="p-2 rounded-full hover:bg-red-500/10 transition-colors"
                       >

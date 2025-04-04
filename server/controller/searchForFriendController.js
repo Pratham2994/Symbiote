@@ -89,36 +89,49 @@ const getAllFriends = async (req, res) => {
 
 const removeFriend = async(req, res)=>{
     try{
-        userId = req.user.id;
+        const userId = req.user.id;
         const { friendId } = req.body;
 
         if(!friendId){
             return res.status(400).json({
                 success: false,
                 message: "FriendId required"
-            })
+            });
         }
 
-        await User.findByIdAndUpdate(userId, { $pull: { friends: friendId } });
-        await User.findByIdAndUpdate(friendId, { $pull: { friends: userId } });
-        
-        //todo remove friendRequestID
+        // Check if users exist
+        const [user, friend] = await Promise.all([
+            User.findById(userId),
+            User.findById(friendId)
+        ]);
+
+        if (!user || !friend) {
+            return res.status(404).json({
+                success: false,
+                message: "User or friend not found"
+            });
+        }
+
+        // Remove from both users' friends lists
+        await Promise.all([
+            User.findByIdAndUpdate(userId, { $pull: { friends: friendId } }),
+            User.findByIdAndUpdate(friendId, { $pull: { friends: userId } })
+        ]);
 
         return res.status(200).json({
             success: true,
             message: 'Friend removed successfully'
         });
-
     }
     catch(err){
-        console.log(err)
+        console.log(err);
         return res.status(500).json({
             success: false,
             message: 'Internal server error',
             error: err.message
         });
     }
-}
+};
 
 module.exports = {
     searchFriendbyUsername,
