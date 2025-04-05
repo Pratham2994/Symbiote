@@ -5,7 +5,7 @@ const TeamInvite = require('../models/TeamInvite');
 const JoinRequest = require('../models/JoinRequest');
 const Chat = require('../models/Chat');
 
-exports.deleteTeam = async (req, res) => {
+deleteTeam = async (req, res) => {
     try {
         const { teamId } = req.body;
         const requesterId = req.user.id;
@@ -110,3 +110,5 @@ exports.deleteTeam = async (req, res) => {
         });
     }
 }; 
+
+module.exports = { deleteTeam };

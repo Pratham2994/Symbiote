@@ -229,6 +229,8 @@ const NotificationModal = ({ isOpen, onClose }) => {
       case 'TEAM_JOIN_REQUEST':
       case 'TEAM_JOIN_ACCEPTED':
         return <Users className="w-5 h-5 text-venom-purple" />;
+      case 'TEAM_DELETED':
+        return <XCircle className="w-5 h-5 text-red-400" />;
       default:
         return <Bell className="w-5 h-5 text-venom-purple" />;
     }

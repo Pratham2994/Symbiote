@@ -14,7 +14,8 @@ const NOTIFICATION_TYPES = {
   TEAM_INVITE_ACCEPTED: 'TEAM_INVITE_ACCEPTED',
   TEAM_INVITE_REJECTED: 'TEAM_INVITE_REJECTED',
   TEAM_JOIN_REQUEST_ACCEPTED: 'TEAM_JOIN_REQUEST_ACCEPTED',
-  TEAM_JOIN_REQUEST_REJECTED: 'TEAM_JOIN_REQUEST_REJECTED'
+  TEAM_JOIN_REQUEST_REJECTED: 'TEAM_JOIN_REQUEST_REJECTED',
+  TEAM_DELETED: 'TEAM_DELETED'
 };
 
 const notificationController = {
@@ -119,6 +120,10 @@ const notificationController = {
           break;
         case NOTIFICATION_TYPES.TEAM_JOIN_REQUEST_ACCEPTED:
           message = `${sender.username} accepted your request to join the team`;
+          break;
+        case NOTIFICATION_TYPES.TEAM_DELETED:
+          const deletedTeam = await Team.findById(teamId);
+          message = `Team ${deletedTeam?.name || 'Unknown'} has been deleted`;
           break;
         default:
           message = 'New notification';

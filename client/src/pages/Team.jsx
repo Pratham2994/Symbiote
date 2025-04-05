@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Users, Trophy, Star, MessageSquare, UserPlus, ArrowLeft, Calendar, Github } from 'lucide-react';
+import { Users, Trophy, Star, MessageSquare, UserPlus, ArrowLeft, Calendar, Github, Trash2 } from 'lucide-react';
 import { useTeam } from '../context/TeamContext';
 import { useAuth } from '../context/AuthContext';
 import UserNavbar from '../components/UserNavbar';
 import QuickAddModal from '../components/QuickAddModal';
+import { toast } from 'react-toastify';
+import axios from 'axios';
 
 const Team = () => {
   const { teamId } = useParams();
@@ -14,10 +16,61 @@ const Team = () => {
   const { user } = useAuth();
   const [team, setTeam] = useState(null);
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleCompetitionClick = (competitionId) => {
     if (competitionId) {
       navigate(`/dashboard/hackathons/${competitionId}`);
+    }
+  };
+
+  const handleDeleteTeam = async () => {
+    if (!team) return;
+    
+    setIsDeleting(true);
+    try {
+      const response = await axios.post(`${import.meta.env.VITE_API_DOMAIN}/api/teams/delete`, {
+        teamId: team._id
+      }, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        withCredentials: true
+      });
+      
+      if (response.data.success) {
+        toast.success('Team deleted successfully', {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+        navigate('/dashboard/teams');
+      } else {
+        toast.error(response.data.message || 'Failed to delete team', {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to delete team', {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+    } finally {
+      setIsDeleting(false);
+      setIsDeleteConfirmOpen(false);
     }
   };
 
@@ -100,6 +153,22 @@ const Team = () => {
               </h1>
             </motion.div>
             <div className="flex gap-4">
+              {/* Delete Team Button */}
+              {user && team.createdBy && user._id === team.createdBy._id && (
+                <motion.button
+                  whileHover={{ 
+                    scale: 1.05,
+                    boxShadow: "0 0 20px rgba(220, 38, 38, 0.3)",
+                    transition: { duration: 0, scale: { duration: 0 }, boxShadow: { duration: 0 } }
+                  }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setIsDeleteConfirmOpen(true)}
+                  className="flex items-center gap-2 px-6 py-3 bg-red-500/20 border border-red-500/30 rounded-xl hover:bg-red-500/30 transition-all duration-[50ms]"
+                >
+                  <Trash2 size={20} className="text-red-500" />
+                  <span>Delete Team</span>
+                </motion.button>
+              )}
               <motion.button
                 whileHover={{ 
                   scale: 1.05,
@@ -275,6 +344,50 @@ const Team = () => {
         onClose={() => setIsQuickAddOpen(false)} 
         teamId={teamId}
       />
+      
+      {/* Delete Team Confirmation Modal */}
+      {isDeleteConfirmOpen && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="bg-[#0B0B0B] border border-red-500/30 rounded-xl p-6 max-w-md w-full mx-4 shadow-lg"
+          >
+            <h3 className="text-xl font-bold mb-4 text-red-500">Delete Team</h3>
+            <p className="text-ghost-lilac mb-6">
+              Are you sure you want to delete this team? This action cannot be undone and will remove all team members and associated data.
+            </p>
+            <div className="flex justify-end gap-4">
+              <button
+                onClick={() => setIsDeleteConfirmOpen(false)}
+                className="px-4 py-2 rounded-lg bg-venom-purple/20 border border-venom-purple/30 hover:bg-venom-purple/30 transition-colors"
+                disabled={isDeleting}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteTeam}
+                className="px-4 py-2 rounded-lg bg-red-500/20 border border-red-500/30 hover:bg-red-500/30 transition-colors flex items-center gap-2"
+                disabled={isDeleting}
+              >
+                {isDeleting ? (
+                  <>
+                    <span className="animate-spin">⌛</span>
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 size={16} className="text-red-500" />
+                    <span>Delete Team</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+      
       <style>{`
         .scrollbar-hide {
           -ms-overflow-style: none;
