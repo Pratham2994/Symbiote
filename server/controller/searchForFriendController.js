@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const FriendRequest = require('../models/FriendRequest');
 
 const searchFriendbyUsername = async (req, res) => {
     try {
@@ -117,6 +118,14 @@ const removeFriend = async(req, res)=>{
             User.findByIdAndUpdate(userId, { $pull: { friends: friendId } }),
             User.findByIdAndUpdate(friendId, { $pull: { friends: userId } })
         ]);
+
+        // Delete any existing friend requests between these users
+        await FriendRequest.deleteMany({
+            $or: [
+                { from: userId, to: friendId },
+                { from: friendId, to: userId }
+            ]
+        });
 
         return res.status(200).json({
             success: true,
