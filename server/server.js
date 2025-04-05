@@ -15,8 +15,6 @@ const path = require('path');
 
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-const swaggerJsDoc = require('swagger-jsdoc');
-const swaggerUi = require('swagger-ui-express');
 const http = require('http');
 const { Server } = require('socket.io');
 
@@ -53,49 +51,6 @@ const corsOptions = {
 
 // Apply CORS before other middleware
 app.use(cors(corsOptions));
-
-// Swagger configuration
-const swaggerOptions = {
-  definition: {
-    openapi: '3.0.0',
-    info: {
-      title: 'Symbiote API Documentation',
-      version: '1.0.0',
-      description: 'API documentation for the Symbiote application',
-    },
-    servers: [
-      {
-        url: `http://localhost:${PORT}`,
-        description: 'Development server',
-      },
-    ],
-    components: {
-      securitySchemes: {
-        bearerAuth: {
-          type: 'http',
-          scheme: 'bearer',
-          bearerFormat: 'JWT'
-        }
-      }
-    }
-  },
-  apis: ['./routes/*.js']
-};
-
-const swaggerDocs = swaggerJsDoc(swaggerOptions);
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
-
-// Security middleware
-app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" }
-}));
-
-// // Rate limiting
-// const limiter = rateLimit({
-//   windowMs: 15 * 60 * 1000, // 15 minutes
-//   max: 100 // Limit each IP to 100 requests per windowMs
-// });
-// app.use('/api', limiter);
 
 // Middlewares
 app.use(express.json());
@@ -151,5 +106,4 @@ connectDB();
 // Start Server
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-  console.log(`Swagger documentation available at http://localhost:${PORT}/api-docs`);
 });
