@@ -69,7 +69,7 @@ const evaluateCandidate = async (resumeBuffer, githubLink, eqAnswers) => {
         formData.append('eq_answers', JSON.stringify(finalEqAnswers));
 
         // Send to ML FastAPI service
-        const response = await axios.post('http://127.0.0.1:8000/analyze', formData, {
+        const response = await axios.post(`${process.env.ML_SERVICE_URL}/analyze`, formData, {
             headers: {
                 ...formData.getHeaders()
             }

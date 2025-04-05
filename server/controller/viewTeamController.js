@@ -14,7 +14,7 @@ const findMatch = async (candidate1Scores, candidate2Scores, weights = null) => 
             payload.weights = weights;
         }
 
-        const response = await axios.post('http://127.0.0.1:8000/calculate-match', payload, {
+        const response = await axios.post(`${process.env.ML_SERVICE_URL}/calculate-match`, payload, {
             headers: {
                 'Content-Type': 'application/json'
             }

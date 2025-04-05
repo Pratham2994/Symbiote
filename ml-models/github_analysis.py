@@ -22,6 +22,7 @@ GRAPHQL_URL = 'https://api.github.com/graphql'
 
 # Configure Gemini API
 api_key = os.getenv("GEMINI_API_KEY")
+BACKEND_API_URL = os.getenv("BACKEND_API_URL")
 client = genai.Client(api_key=api_key)
 
 # Define keywords lists for repository classification
@@ -185,7 +186,7 @@ async def get_user_repos_batched(session, username: str, batch_size=50, max_repo
 
 @lru_cache(maxsize=100)
 async def get_rank_data_async(session, username):
-    url = f"http://localhost:5000//api/github/rank/{username}"
+    url = f"{BACKEND_API_URL}/api/github/rank/{username}"
     async with session.get(url) as response:
         if response.status == 200:
             return await response.json()
