@@ -5,12 +5,14 @@ import { useAuth } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
 import { toast } from 'react-toastify';
 import api from '../../utils/api';
+import { useNavigate } from 'react-router-dom';
 
 const AUTO_DISMISS_DELAY = 3500; // 3.5 seconds for non-actionable notifications
 
 const NotificationModal = ({ isOpen, onClose }) => {
   const { user } = useAuth();
   const { socket, setUnreadCount } = useNotification();
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState({
     actionRequired: [],
     nonActionRequired: [],
@@ -58,6 +60,16 @@ const NotificationModal = ({ isOpen, onClose }) => {
     const handleNewNotification = (notification) => {
       console.log('New notification received:', notification);
       setNotifications(prev => {
+        // Check if this notification already exists to prevent duplicates
+        const notificationExists = 
+          prev.actionRequired.some(n => n._id === notification._id) || 
+          prev.nonActionRequired.some(n => n._id === notification._id);
+        
+        if (notificationExists) {
+          console.log('Duplicate notification detected, ignoring:', notification._id);
+          return prev;
+        }
+        
         const target = notification.actionRequired ? 'actionRequired' : 'nonActionRequired';
         return {
           ...prev,
@@ -222,51 +234,84 @@ const NotificationModal = ({ isOpen, onClose }) => {
     }
   };
 
+  // Handle username click to navigate to profile
+  const handleUsernameClick = (senderId) => {
+    if (senderId) {
+      navigate(`/dashboard/profile/${senderId}`);
+      onClose(); // Close the notification modal after navigation
+    }
+  };
+
   // Render a single notification
-  const renderNotification = (notification) => (
-    <motion.div
-      key={notification._id}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="p-4 rounded-lg mb-4 bg-void-black/80 border border-venom-purple/20 shadow-lg shadow-venom-purple/10 group hover:border-venom-purple/40 transition-all duration-200"
-    >
-      <div className="flex items-start space-x-4">
-        <div className="flex-shrink-0">
-          {getNotificationIcon(notification.type)}
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm text-ghost-lilac">{notification.message}</p>
-          <div className="flex items-center gap-2 mt-1">
-            <Clock className="w-3 h-3 text-ghost-lilac/60" />
-            <p className="text-xs text-ghost-lilac/60">
-              {new Date(notification.createdAt).toLocaleString()}
-            </p>
+  const renderNotification = (notification) => {
+    // Extract username from message for actionable notifications
+    let username = '';
+    let message = notification.message;
+    
+    if (notification.actionRequired && notification.sender && notification.sender._id) {
+      // Extract username from the beginning of the message
+      const match = message.match(/^([^ ]+)/);
+      if (match) {
+        username = match[1];
+        // Replace the username with a clickable span
+        message = message.replace(username, `<span class="text-venom-purple cursor-pointer hover:underline">${username}</span>`);
+      }
+    }
+
+    return (
+      <motion.div
+        key={notification._id}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="p-4 rounded-lg mb-4 bg-void-black/80 border border-venom-purple/20 shadow-lg shadow-venom-purple/10 group hover:border-venom-purple/40 transition-all duration-200"
+      >
+        <div className="flex items-start space-x-4">
+          <div className="flex-shrink-0">
+            {getNotificationIcon(notification.type)}
           </div>
-        </div>
-        {notification.actionRequired && (
-          <div className="flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button
-              onClick={() => handleAction(notification._id, 'accept', notification.type, notification.actionData)}
-              className="p-1.5 rounded-full hover:bg-venom-purple/20 transition-all duration-200 group/button relative"
-              title="Accept"
-            >
-              <Check className="w-4 h-4 text-venom-purple group-hover/button:scale-110 transition-transform" />
-              <span className="absolute inset-0 rounded-full bg-venom-purple/10 opacity-0 group-hover/button:opacity-100 transition-opacity" />
-            </button>
-            <button
-              onClick={() => handleAction(notification._id, 'reject', notification.type, notification.actionData)}
-              className="p-1.5 rounded-full hover:bg-red-500/20 transition-all duration-200 group/button relative"
-              title="Reject"
-            >
-              <XCircle className="w-4 h-4 text-red-400 group-hover/button:scale-110 transition-transform" />
-              <span className="absolute inset-0 rounded-full bg-red-500/10 opacity-0 group-hover/button:opacity-100 transition-opacity" />
-            </button>
+          <div className="flex-1 min-w-0">
+            <p 
+              className="text-sm text-ghost-lilac"
+              dangerouslySetInnerHTML={{ __html: message }}
+              onClick={(e) => {
+                // Check if the clicked element is the username span
+                if (e.target.tagName === 'SPAN' && notification.sender && notification.sender._id) {
+                  handleUsernameClick(notification.sender._id);
+                }
+              }}
+            />
+            <div className="flex items-center gap-2 mt-1">
+              <Clock className="w-3 h-3 text-ghost-lilac/60" />
+              <p className="text-xs text-ghost-lilac/60">
+                {new Date(notification.createdAt).toLocaleString()}
+              </p>
+            </div>
           </div>
-        )}
-      </div>
-    </motion.div>
-  );
+          {notification.actionRequired && (
+            <div className="flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button
+                onClick={() => handleAction(notification._id, 'accept', notification.type, notification.actionData)}
+                className="p-1.5 rounded-full hover:bg-venom-purple/20 transition-all duration-200 group/button relative"
+                title="Accept"
+              >
+                <Check className="w-4 h-4 text-venom-purple group-hover/button:scale-110 transition-transform" />
+                <span className="absolute inset-0 rounded-full bg-venom-purple/10 opacity-0 group-hover/button:opacity-100 transition-opacity" />
+              </button>
+              <button
+                onClick={() => handleAction(notification._id, 'reject', notification.type, notification.actionData)}
+                className="p-1.5 rounded-full hover:bg-red-500/20 transition-all duration-200 group/button relative"
+                title="Reject"
+              >
+                <XCircle className="w-4 h-4 text-red-400 group-hover/button:scale-110 transition-transform" />
+                <span className="absolute inset-0 rounded-full bg-red-500/10 opacity-0 group-hover/button:opacity-100 transition-opacity" />
+              </button>
+            </div>
+          )}
+        </div>
+      </motion.div>
+    );
+  };
 
   return (
     <AnimatePresence>

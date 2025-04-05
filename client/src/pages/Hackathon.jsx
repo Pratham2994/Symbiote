@@ -519,7 +519,7 @@ const Hackathon = () => {
                                                 <div className="flex justify-between items-start mb-6">
                                                     <div>
                                                         <h3 className="text-2xl font-bold text-venom-purple mb-2">Team Name : {team.name}</h3>
-                                                        <p className="text-lg text-ghost-lilac/60">Your Match Score with Team: {Math.round(team.matchScore)}%</p>
+                                                        <p className="text-lg text-ghost-lilac/60">Your Match Score with this Team: {Math.round(team.matchScore)}%</p>
                                                     </div>
                                                     <div className="flex items-center gap-4">
                                                         <div className="px-6 py-2 rounded-full bg-venom-purple/20 text-venom-purple font-semibold text-lg">
