@@ -88,7 +88,7 @@ const Hackathon = () => {
         setError("");
 
         try {
-            const response = await fetch("http://localhost:5000/api/teams/create", {
+            const response = await fetch(`${import.meta.env.VITE_API_DOMAIN}/api/teams/create`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -171,7 +171,7 @@ const Hackathon = () => {
         setIsViewTeamsActive(true);
 
         try {
-            const response = await fetch("http://localhost:5000/api/teams/view", {
+            const response = await fetch(`${import.meta.env.VITE_API_DOMAIN}/api/teams/view`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -212,7 +212,7 @@ const Hackathon = () => {
     const handleJoinTeam = async (teamId) => {
         setJoiningTeamId(teamId);
         try {
-            const response = await fetch("http://localhost:5000/api/teams/joinRequest", {
+            const response = await fetch(`${import.meta.env.VITE_API_DOMAIN}/api/teams/joinRequest`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -317,10 +317,10 @@ const Hackathon = () => {
 
     // Function to classify scores into skill levels
     const classifyScore = (score) => {
-        if (score >= 80) return { level: 'Expert', color: 'text-emerald-400' };
+        if (score >= 87) return { level: 'Expert', color: 'text-emerald-400' };
         if (score >= 65) return { level: 'Proficient', color: 'text-blue-400' };
         if (score >= 40) return { level: 'Intermediate', color: 'text-yellow-400' };
-        if (score >= 25) return { level: 'Amateur', color: 'text-orange-400' };
+        if (score >= 20) return { level: 'Amateur', color: 'text-orange-400' };
         return { level: 'Beginner', color: 'text-red-400' };
     };
 
@@ -519,7 +519,7 @@ const Hackathon = () => {
                                                 <div className="flex justify-between items-start mb-6">
                                                     <div>
                                                         <h3 className="text-2xl font-bold text-venom-purple mb-2">Team Name : {team.name}</h3>
-                                                        <p className="text-lg text-ghost-lilac/60">Team Matching Score: {Math.round(team.matchScore)}%</p>
+                                                        <p className="text-lg text-ghost-lilac/60">Your Match Score with Team: {Math.round(team.matchScore)}%</p>
                                                     </div>
                                                     <div className="flex items-center gap-4">
                                                         <div className="px-6 py-2 rounded-full bg-venom-purple/20 text-venom-purple font-semibold text-lg">

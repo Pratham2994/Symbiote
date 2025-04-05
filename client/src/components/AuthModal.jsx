@@ -108,7 +108,7 @@ const AuthModal = ({ type, onClose }) => {
         navigate('/dashboard');
       } else {
         setOtpLoading(true);
-        const response = await fetch('http://localhost:5000/api/auth/send-otp', {
+        const response = await fetch(`${import.meta.env.VITE_API_DOMAIN}/api/auth/send-otp`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email: formData.email })

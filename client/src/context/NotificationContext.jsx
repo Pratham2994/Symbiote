@@ -36,7 +36,7 @@ export const NotificationProvider = ({ children }) => {
   useEffect(() => {
     if (!user?._id) return;
 
-    const newSocket = io('http://localhost:5000', {
+    const newSocket = io(import.meta.env.VITE_API_DOMAIN, {
       withCredentials: true,
       transports: ['websocket'],
       upgrade: false,

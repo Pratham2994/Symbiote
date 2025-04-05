@@ -7,7 +7,7 @@ export const HackathonProvider = ({ children }) => {
 
   const fetchHackathonById = async (id) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/competitions/${id}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_DOMAIN}/api/competitions/${id}`, {
         credentials: "include",
         headers: { "Content-Type": "application/json" },
       });

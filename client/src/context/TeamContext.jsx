@@ -13,7 +13,7 @@ export const TeamProvider = ({ children }) => {
   const fetchTeams = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`http://localhost:5000/api/teams/myteams/${user._id}`, {
+      const response = await axios.get(`${import.meta.env.VITE_API_DOMAIN}/api/teams/myteams/${user._id}`, {
         headers: {
           'Content-Type': 'application/json',
         },
@@ -38,7 +38,7 @@ export const TeamProvider = ({ children }) => {
   const fetchTeamById = useCallback(async (teamId) => {
     try {
       setLoading(true);
-      const response = await axios.get(`http://localhost:5000/api/teams/${teamId}`, {
+      const response = await axios.get(`${import.meta.env.VITE_API_DOMAIN}/api/teams/${teamId}`, {
         headers: {
           'Content-Type': 'application/json',
         },

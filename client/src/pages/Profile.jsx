@@ -31,7 +31,7 @@ export default function Profile() {
         }
         
         // Fetch other user's profile
-        const response = await fetch(`http://localhost:5000/api/user/${userId}`, {
+        const response = await fetch(`${import.meta.env.VITE_API_DOMAIN}/api/user/${userId}`, {
           method: "GET",
           headers: { "Content-Type": "application/json" },
           credentials: "include"

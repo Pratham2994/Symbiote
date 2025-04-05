@@ -252,7 +252,7 @@ const SignupSteps = ({ email, password, onClose }) => {
       }
       formData.append('eqAnswers', JSON.stringify(eqAnswers));
       // Send registration request to backend
-      const response = await fetch('http://localhost:5000/api/auth/register', {
+      const response = await fetch(`${import.meta.env.VITE_API_DOMAIN}/api/auth/register`, {
         method: 'POST',
         body: formData
       });

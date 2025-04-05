@@ -14,7 +14,7 @@ export function AuthProvider({ children }) {
       setLoading(true);
       setError(null);
       console.log("AuthContext: Fetching user profile from /api/auth/verify");
-      const response = await fetch("http://localhost:5000/api/auth/verify", {
+      const response = await fetch(`${import.meta.env.VITE_API_DOMAIN}/api/auth/verify`, {
         method: "GET",
         headers: { "Content-Type": "application/json" },
         credentials: "include" // important to include cookies
@@ -45,7 +45,7 @@ export function AuthProvider({ children }) {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch("http://localhost:5000/api/auth/login", {
+      const response = await fetch(`${import.meta.env.VITE_API_DOMAIN}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include", // ensure cookie is set
@@ -74,7 +74,7 @@ export function AuthProvider({ children }) {
       setLoading(true);
       setError(null);
       console.log("AuthContext: Logging out...");
-      const response = await fetch("http://localhost:5000/api/auth/logout", {
+      const response = await fetch(`${import.meta.env.VITE_API_DOMAIN}/api/auth/logout`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include"
