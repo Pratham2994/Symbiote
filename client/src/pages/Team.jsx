@@ -238,13 +238,22 @@ const Team = () => {
     }
   }, [teamId, fetchTeamById, team]);
 
-  // Update unread message count when team changes
+  // Update unread message count when team changes or when unread counts change
+  useEffect(() => {
+    if (team && team.groupChat) {
+      const count = getUnreadCount(team.groupChat);
+      console.log('Team: Updating unread count for chat:', team.groupChat, 'Count:', count);
+      setUnreadMessageCount(count);
+    }
+  }, [team, getUnreadCount]);
+
+  // Update unread count when group chat modal is opened/closed
   useEffect(() => {
     if (team && team.groupChat) {
       const count = getUnreadCount(team.groupChat);
       setUnreadMessageCount(count);
     }
-  }, [team, getUnreadCount]);
+  }, [isGroupChatOpen, team, getUnreadCount]);
 
   if (loading) {
     return (
@@ -369,14 +378,14 @@ const Team = () => {
                 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={handleOpenGroupChat}
-                className="flex items-center gap-2 px-6 py-3 bg-symbiote-purple/20 border border-symbiote-purple/30 rounded-xl hover:bg-symbiote-purple/30 transition-all duration-[50ms] relative"
+                className="flex items-center gap-2 px-6 py-3 bg-venom-purple/20 border border-venom-purple/30 rounded-xl hover:bg-venom-purple/30 transition-all duration-[50ms] relative"
               >
-                <MessageSquare size={20} className="text-symbiote-purple" />
+                <MessageSquare size={20} className="text-venom-purple" />
                 <span>Group Chat</span>
                 
                 {/* Unread Message Count Badge */}
                 {unreadMessageCount > 0 && (
-                  <div className="absolute -top-2 -right-2 bg-venom-purple text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                  <div className="absolute -top-1 -right-1 bg-venom-purple/90 text-white text-xs font-medium rounded-full w-5 h-5 flex items-center justify-center">
                     {unreadMessageCount}
                   </div>
                 )}

@@ -4,6 +4,8 @@ const TeamInvite = require('../models/TeamInvite');
 const JoinRequest = require('../models/JoinRequest');
 const Notification = require('../models/Notification');
 const { sendNotificationEmail, NOTIFICATION_TYPES } = require('../services/emailService');
+const { updateGroupChatParticipants } = require('../controllers/groupChatController');
+const GroupChat = require('../models/GroupChat');
 
 exports.removeMemberFromTeam = async (req, res) => {
     try {
@@ -61,6 +63,21 @@ exports.removeMemberFromTeam = async (req, res) => {
         team.members = team.members.filter(id => id.toString() !== memberId.toString());
         await team.save();
         console.log('Member removed from team');
+
+        // Update group chat participants to remove the member
+        try {
+            // Check if group chat exists
+            const groupChat = await GroupChat.findOne({ teamId: team._id });
+            if (groupChat) {
+                await updateGroupChatParticipants(team._id, team.members);
+                console.log(`Updated group chat participants for team ${team._id}`);
+            } else {
+                console.log(`No group chat found for team ${team._id}`);
+            }
+        } catch (error) {
+            console.error('Error updating group chat participants:', error);
+            // Continue execution even if this fails
+        }
 
         // Delete any pending invites for the removed member
         await TeamInvite.deleteMany({ team: teamId, recipient: memberId });

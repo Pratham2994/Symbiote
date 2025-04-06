@@ -25,11 +25,28 @@ export const GroupChatProvider = ({ children }) => {
     activeChatRef.current = activeChat;
   }, [activeChat]);
 
+  // Mark messages as read
+  const markMessagesAsRead = async (groupId) => {
+    try {
+      await api.put(`/api/group-chat/${groupId}/read`, {}, {
+        withCredentials: true
+      });
+      
+      // Update unread count locally immediately
+      setUnreadCounts(prev => ({
+        ...prev,
+        [groupId]: 0
+      }));
+    } catch (err) {
+      console.error('Error marking messages as read:', err);
+    }
+  };
+
   // Socket connection and event handling
   useEffect(() => {
     if (!user?._id) return;
 
-    console.log('GroupChatContext: Initializing socket connection');
+    // console.log('GroupChatContext: Initializing socket connection');
     
     const newSocket = io(import.meta.env.VITE_API_DOMAIN, {
       withCredentials: true,
@@ -41,12 +58,12 @@ export const GroupChatProvider = ({ children }) => {
     });
 
     newSocket.on('connect', () => {
-      console.log('GroupChatContext: Socket connected with ID:', newSocket.id);
+      // console.log('GroupChatContext: Socket connected with ID:', newSocket.id);
       newSocket.emit('authenticate', user._id);
     });
 
     newSocket.on('disconnect', () => {
-      console.log('GroupChatContext: Socket disconnected');
+      // console.log('GroupChatContext: Socket disconnected');
     });
 
     newSocket.on('connect_error', (error) => {
@@ -55,15 +72,17 @@ export const GroupChatProvider = ({ children }) => {
 
     // Listen for new messages
     newSocket.on('newMessage', ({ groupId, message }) => {
-      console.log('GroupChatContext: New message received for group:', groupId, message);
-      console.log('GroupChatContext: Current active chat:', activeChatRef.current?._id);
+      // console.log('GroupChatContext: New message received for group:', groupId, message);
+      // console.log('GroupChatContext: Current active chat:', activeChatRef.current?._id);
 
+      // Update messages if chat is active
       if (activeChatRef.current && activeChatRef.current._id === groupId) {
-        console.log('GroupChatContext: Updating messages for active chat');
+        // console.log('GroupChatContext: Updating messages for active chat');
         setMessages(prev => [...prev, message]);
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        // Removed auto-scroll from here - let the modal component handle it
       } else {
-        console.log('GroupChatContext: Updating unread count for inactive chat');
+        // Only update unread count if chat is not active
+        // console.log('GroupChatContext: Updating unread count for inactive chat');
         setUnreadCounts(prev => ({
           ...prev,
           [groupId]: (prev[groupId] || 0) + 1
@@ -71,11 +90,20 @@ export const GroupChatProvider = ({ children }) => {
       }
     });
 
+    // Listen for unread count updates
+    newSocket.on('unreadCountUpdate', ({ groupId, count }) => {
+      // console.log('GroupChatContext: Unread count update received:', groupId, count);
+      setUnreadCounts(prev => ({
+        ...prev,
+        [groupId]: count
+      }));
+    });
+
     setSocket(newSocket);
 
     // Cleanup on unmount
     return () => {
-      console.log('GroupChatContext: Cleaning up socket connection');
+      // console.log('GroupChatContext: Cleaning up socket connection');
       if (newSocket) {
         newSocket.removeAllListeners();
         newSocket.disconnect();
@@ -85,17 +113,28 @@ export const GroupChatProvider = ({ children }) => {
 
   // Fetch unread counts on mount and when user changes
   useEffect(() => {
+    const fetchUnreadCounts = async () => {
+      try {
+        const response = await api.get('/api/group-chat/unread-count', {
+          withCredentials: true
+        });
+        setUnreadCounts(response.data);
+      } catch (err) {
+        console.error('Error fetching unread counts:', err);
+      }
+    };
+
     if (isAuthenticated && user) {
       fetchUnreadCounts();
+      
+      // Set up interval to periodically fetch unread counts
+      const interval = setInterval(fetchUnreadCounts, 60000); // Changed from 30 seconds to 60 seconds
+      
+      return () => clearInterval(interval);
     }
   }, [isAuthenticated, user]);
 
-  // Scroll to bottom when messages change
-  useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [messages]);
+  // Removed auto-scroll effect that was here
 
   const scrollToBottom = () => {
     if (messagesEndRef.current) {
@@ -103,16 +142,10 @@ export const GroupChatProvider = ({ children }) => {
     }
   };
 
-  // Fetch unread message counts
-  const fetchUnreadCounts = async () => {
-    try {
-      const response = await api.get('/api/group-chat/unread-count', {
-        withCredentials: true
-      });
-      setUnreadCounts(response.data);
-    } catch (err) {
-      console.error('Error fetching unread counts:', err);
-    }
+  // Get unread count for a specific chat
+  const getUnreadCount = (groupId) => {
+    console.log('GroupChatContext: Getting unread count for:', groupId, 'Current counts:', unreadCounts);
+    return unreadCounts[groupId] || 0;
   };
 
   // Create a group chat for a team
@@ -157,17 +190,6 @@ export const GroupChatProvider = ({ children }) => {
       
       setMessages(response.data);
       
-      // Mark messages as read
-      await api.put(`/api/group-chat/${groupId}/read`, {}, {
-        withCredentials: true
-      });
-      
-      // Update unread count
-      setUnreadCounts(prev => ({
-        ...prev,
-        [groupId]: 0
-      }));
-      
       return response.data;
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to open group chat');
@@ -208,11 +230,6 @@ export const GroupChatProvider = ({ children }) => {
     }
   };
 
-  // Get unread count for a specific chat
-  const getUnreadCount = (groupId) => {
-    return unreadCounts[groupId] || 0;
-  };
-
   const value = {
     unreadCounts,
     activeChat,
@@ -225,7 +242,8 @@ export const GroupChatProvider = ({ children }) => {
     sendMessage,
     getUnreadCount,
     messagesEndRef,
-    socket
+    socket,
+    markMessagesAsRead
   };
 
   return (

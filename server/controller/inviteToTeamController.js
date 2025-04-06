@@ -3,6 +3,9 @@ const Team = require('../models/Team');
 const User = require('../models/User');
 const Notification = require('../models/Notification');
 const { sendNotificationEmail, NOTIFICATION_TYPES } = require('../services/emailService');
+const { updateGroupChatParticipants } = require('../controllers/groupChatController');
+const GroupChat = require('../models/GroupChat');
+const GroupChatMeta = require('../models/GroupChatMeta');
 
 const emitNotificationUpdate = async (userId) => {
   try {
@@ -315,6 +318,33 @@ const handleTeamInvite = async (req, res) => {
             const team = await Team.findById(invite.team._id).populate('members', 'frontendScore backendScore eqScore');
             team.members.push(userId);
             await team.save();
+
+            // Check if group chat exists, create if it doesn't
+            let groupChat = await GroupChat.findOne({ teamId: team._id });
+            if (!groupChat) {
+                console.log(`Creating group chat for team ${team._id}`);
+                groupChat = await GroupChat.create({
+                    teamId: team._id,
+                    participants: team.members
+                });
+                
+                // Create meta records for all participants
+                await Promise.all(team.members.map(id => {
+                    return GroupChatMeta.create({ groupId: groupChat._id, userId: id });
+                }));
+                
+                // Update team with group chat reference
+                team.groupChat = groupChat._id;
+                await team.save();
+            } else {
+                // Update group chat participants to include the new team member
+                try {
+                    await updateGroupChatParticipants(team._id, team.members);
+                } catch (error) {
+                    console.error('Error updating group chat participants:', error);
+                    // Continue execution even if this fails
+                }
+            }
 
             // Update the invitation status to "Accepted"
             invite.status = "Accepted";

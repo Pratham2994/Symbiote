@@ -4,6 +4,10 @@ const Notification = require('../models/Notification');
 const TeamInvite = require('../models/TeamInvite');
 const JoinRequest = require('../models/JoinRequest');
 const { sendNotificationEmail, NOTIFICATION_TYPES } = require('../services/emailService');
+const { updateGroupChatParticipants } = require('../controllers/groupChatController');
+const GroupChat = require('../models/GroupChat');
+const Message = require('../models/Message');
+const GroupChatMeta = require('../models/GroupChatMeta');
 
 deleteTeam = async (req, res) => {
     try {
@@ -69,7 +73,23 @@ deleteTeam = async (req, res) => {
         // Delete all join requests
         await JoinRequest.deleteMany({ team: teamId });
         
-
+        // Enhanced group chat cleanup
+        const groupChat = await GroupChat.findOne({ teamId });
+        if (groupChat) {
+            console.log(`Found group chat ${groupChat._id} for team ${teamId}. Cleaning up...`);
+            
+            // Delete all messages for this group chat
+            const deletedMessages = await Message.deleteMany({ groupId: groupChat._id });
+            console.log(`Deleted ${deletedMessages.deletedCount} messages`);
+            
+            // Delete all group chat meta records
+            const deletedMeta = await GroupChatMeta.deleteMany({ groupId: groupChat._id });
+            console.log(`Deleted ${deletedMeta.deletedCount} group chat meta records`);
+            
+            // Delete the group chat itself
+            await GroupChat.findByIdAndDelete(groupChat._id);
+            console.log(`Deleted group chat ${groupChat._id}`);
+        }
         
         // Remove the team from all members' teams lists
         // This assumes there's a teams field in the User model
@@ -184,6 +204,21 @@ leaveTeam = async (req, res) => {
         // Remove the user from the team
         team.members = team.members.filter(id => id.toString() !== requesterId.toString());
         await team.save();
+
+        // Update group chat participants to remove the member
+        try {
+            // Check if group chat exists
+            const groupChat = await GroupChat.findOne({ teamId: team._id });
+            if (groupChat) {
+                await updateGroupChatParticipants(team._id, team.members);
+                console.log(`Updated group chat participants for team ${team._id}`);
+            } else {
+                console.log(`No group chat found for team ${team._id}`);
+            }
+        } catch (error) {
+            console.error('Error updating group chat participants:', error);
+            // Continue execution even if this fails
+        }
 
         // Remove the team from the user's teams list
         await User.findByIdAndUpdate(requesterId, {
