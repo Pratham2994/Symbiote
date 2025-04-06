@@ -26,15 +26,16 @@ class MatchScoreCalculator:
           Band 3: 66–85
           Band 4: 86–100
         """
-        if 0 <= score <= 35:
+        if 0 <= score <= 36:
             return 1
-        elif 36 <= score <= 65:
+        elif 36 < score <= 66:
             return 2
-        elif 66 <= score <= 85:
+        elif 66 < score <= 86:
             return 3
-        elif 86 <= score <= 100:
+        elif 86 < score <= 100:
             return 4
         else:
+            print(f"Score: {score} is out of range")
             raise ValueError("Score must be between 0 and 100")
 
     @staticmethod
@@ -226,7 +227,7 @@ if __name__ == "__main__":
     print(f"Test 12 - Nearly identical scores: {score:.2f}%")
     
     # Test case 13: Extreme gap in both skills (non-complementary)
-    person_a = {"frontend": 90, "backend": 90, "eq": 50}
-    person_b = {"frontend": 10, "backend": 10, "eq": 50}
+    person_a = {"frontend": 70, "backend": 30, "eq": 70}
+    person_b = {"frontend": 35.71, "backend": 45.57, "eq": 43.75}
     score = calculator.calculate_combined_score(person_a, person_b)
     print(f"Test 13 - Extreme gap in both skills: {score:.2f}%")
