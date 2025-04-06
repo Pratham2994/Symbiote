@@ -28,7 +28,6 @@ const findMatch = async (candidate1Scores, candidate2Scores, weights = null) => 
 
 const getFriendsByTeamAndCompetition = async (req, res) => {
     try {
-        console.log("req.body", req.user)
         const { team_id } = req.body;
         
         // Check if user is authenticated
