@@ -328,7 +328,11 @@ const GroupChatModal = ({ isOpen, onClose, teamId, teamName }) => {
                               key={index}
                               whileHover={{ scale: 1.2 }}
                               whileTap={{ scale: 0.9 }}
-                              onClick={() => addEmoji(emoji)}
+                              onClick={(e) => {
+                                e.preventDefault(); // Prevent form submission
+                                addEmoji(emoji);
+                              }}
+                              type="button" // Add type="button" to prevent form submission
                               className="text-xl p-1 rounded hover:bg-venom-purple/20 transition-colors"
                             >
                               {emoji}
