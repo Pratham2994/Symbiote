@@ -14,7 +14,7 @@ router.get('/myteams/:userId', protect , getUserTeams);
 router.get('/:teamId', protect , getOneTeam);
 router.post('/create', protect, createTeam);
 router.post('/view', protect , getTeamsByUserAndCompetition);
-router.post('/viewFriends',protect , getFriendsByTeamAndCompetition);
+router.post('/viewFriends', getFriendsByTeamAndCompetition);
 router.post('/joinRequest', protect , joinTeamRequest)
 router.post('/handleJoinRequest', protect , handleJoinRequest)
 router.post('/invite', protect , inviteToTeam)

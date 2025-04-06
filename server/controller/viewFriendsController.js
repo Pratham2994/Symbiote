@@ -27,21 +27,19 @@ const findMatch = async (candidate1Scores, candidate2Scores, weights = null) => 
 };
 
 const getFriendsByTeamAndCompetition = async (req, res) => {
-    console.log('getFriendsByTeamAndCompetition called with:', req.body);
     try {
-        const { team_id, competition_id } = req.body;
+        const { team_id} = req.body;
 
         // Input validation
-        if (!team_id || !competition_id) {
-            console.log('Missing required fields:', { team_id, competition_id });
+        if (!team_id) {
             return res.status(400).json({
                 success: false,
-                message: 'Team ID and Competition ID are required'
+                message: 'Team ID is required'
             });
         }
 
         // Validate ObjectId format
-        if (!team_id.match(/^[0-9a-fA-F]{24}$/) || !competition_id.match(/^[0-9a-fA-F]{24}$/)) {
+        if (!team_id.match(/^[0-9a-fA-F]{24}$/)) {
             return res.status(400).json({
                 success: false,
                 message: 'Invalid ID format'
@@ -63,32 +61,32 @@ const getFriendsByTeamAndCompetition = async (req, res) => {
         }
 
         // Get the competition
-        const competition = await Competition.findById(competition_id);
+        // const competition = await Competition.findById(competition_id);
 
-        if (!competition) {
-            return res.status(404).json({
-                success: false,
-                message: 'Competition not found'
-            });
-        }
+        // if (!competition) {
+        //     return res.status(404).json({
+        //         success: false,
+        //         message: 'Competition not found'
+        //     });
+        // }
 
-        // Check if competition registration deadline has passed
-        const registrationDeadline = new Date(competition.registrationDeadline);
-        if (registrationDeadline < new Date()) {
-            return res.status(400).json({
-                success: false,
-                message: 'Registration deadline for this competition has passed'
-            });
-        }
+        // // Check if competition registration deadline has passed
+        // const registrationDeadline = new Date(competition.registrationDeadline);
+        // if (registrationDeadline < new Date()) {
+        //     return res.status(400).json({
+        //         success: false,
+        //         message: 'Registration deadline for this competition has passed'
+        //     });
+        // }
 
-        // Check if competition has started
-        const competitionStartDate = new Date(competition.competitionStartDate);
-        if (competitionStartDate < new Date()) {
-            return res.status(400).json({
-                success: false,
-                message: 'This competition has already started'
-            });
-        }
+        // // Check if competition has started
+        // const competitionStartDate = new Date(competition.competitionStartDate);
+        // if (competitionStartDate < new Date()) {
+        //     return res.status(400).json({
+        //         success: false,
+        //         message: 'This competition has already started'
+        //     });
+        // }
 
         // Calculate team scores (average of all members)
         let teamScores;
@@ -113,9 +111,20 @@ const getFriendsByTeamAndCompetition = async (req, res) => {
             });
         }
 
-        // Get all users who are not in the team and have completed assessments
+        // Get all friends of team members who have completed assessments
+        const teamMemberIds = team.members.map(member => member._id);
+        
+        // First get all friends of team members
+        const teamMembersWithFriends = await User.find({
+            _id: { $in: teamMemberIds }
+        }).select('friends');
+        
+        // Get unique friend IDs from all team members
+        const friendIds = [...new Set(teamMembersWithFriends.flatMap(member => member.friends))];
+        
+        // Get friend details who have completed assessments
         const friends = await User.find({
-            _id: { $nin: team.members.map(member => member._id) },
+            _id: { $in: friendIds },
             frontendScore: { $exists: true, $ne: null },
             backendScore: { $exists: true, $ne: null },
             eqScore: { $exists: true, $ne: null }
