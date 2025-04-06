@@ -4,13 +4,12 @@ class MatchScoreCalculator:
     def __init__(self, weights=None):
         """
         Initialize the calculator with custom weights.
-        Only 'frontend' and 'backend' keys are used (eq is ignored for now).
+        Only 'frontend' and 'backend' keys are used (eq is handled separately).
         If no weights provided, defaults to 0.5 for both.
         """
         if weights:
             # Use only frontend and backend; ignore extra keys.
             self.weights = {k: v for k, v in weights.items() if k in ['frontend', 'backend']}
-            # If one is missing, assign a default value.
             if 'frontend' not in self.weights:
                 self.weights['frontend'] = 0.5
             if 'backend' not in self.weights:
@@ -76,26 +75,33 @@ class MatchScoreCalculator:
                 adjustment = -20
 
         contribution = 50 + adjustment
-        # Ensure the contribution is between 0 and 100.
         contribution = max(0, min(100, contribution))
         return contribution, band1, band2
 
     def calculate_combined_score(self, candidate1_scores: dict, candidate2_scores: dict) -> float:
         """
-        Calculates the overall match percentage between two candidates
-        based on their frontend and backend scores.
+        Calculates the overall match percentage between two candidates.
         
-        Steps:
-          1. For each skill (frontend and backend), compute a contribution score.
-          2. Detect complementary strengths: if one candidate is stronger in one skill 
-             and weaker in the other (i.e. differences have opposite signs), add a bonus.
-          3. Aggregate the contributions using the provided weights.
-          4. Normalize the final score to be between 0 and 100.
+        For frontend and backend:
+          1. Compute a contribution score for each skill.
+          2. Apply a bonus if complementary strengths are detected.
+          3. Aggregate using provided weights.
+        
+        For EQ (Team Chemistry):
+          1. Calculate the average of both candidates’ EQ scores.
+        
+        The final match score is a weighted combination:
+          - 75% weight for the combined frontend/backend score.
+          - 25% weight for the EQ score.
+        
+        Finally, a linear transformation is applied to expand the range:
+          scaled_score = 2 * final_score - 60,
+        and then clamped to between 10 and 90.
         
         Returns:
-            A float representing the overall match percentage.
+            A float representing the overall match percentage (10–90).
         """
-        # Compute per-skill contributions.
+        # --- Frontend & Backend Calculation ---
         frontend_score1 = candidate1_scores.get("frontend", 0)
         frontend_score2 = candidate2_scores.get("frontend", 0)
         backend_score1 = candidate1_scores.get("backend", 0)
@@ -104,29 +110,41 @@ class MatchScoreCalculator:
         frontend_contrib, f_band1, f_band2 = self.compute_skill_contribution(frontend_score1, frontend_score2)
         backend_contrib, b_band1, b_band2 = self.compute_skill_contribution(backend_score1, backend_score2)
 
-        # Check for complementary strengths:
-        # If one candidate is stronger in one skill and weaker in the other,
-        # the differences will have opposite signs.
+        # Detect complementary strengths:
         diff_frontend = frontend_score1 - frontend_score2
         diff_backend = backend_score1 - backend_score2
         complementary = diff_frontend * diff_backend < 0
 
-        # Aggregate using weights.
         w_front = self.weights.get("frontend", 0.5)
         w_back = self.weights.get("backend", 0.5)
         total_weight = w_front + w_back
 
-        # Calculate weighted average of the skill contributions.
-        overall = (frontend_contrib * w_front + backend_contrib * w_back) / total_weight
+        overall_fb = (frontend_contrib * w_front + backend_contrib * w_back) / total_weight
 
-        # Apply a complementary bonus if applicable.
+        # Apply bonus if complementary strengths exist.
         if complementary:
-            # Add bonus factor (e.g. +30) if complementary strengths are detected.
-            overall += 30
+            overall_fb += 30
 
-        # Ensure final match percentage is within 0 to 100.
-        overall = max(0, min(100, overall))
-        return overall
+        overall_fb = max(0, min(100, overall_fb))
+
+        # --- EQ (Team Chemistry) Calculation ---
+        eq1 = candidate1_scores.get("eq", 50)
+        eq2 = candidate2_scores.get("eq", 50)
+        # For EQ, we simply average the two scores.
+        eq_avg = (eq1 + eq2) / 2
+
+        # --- Final Weighted Combination ---
+        fb_weight = 0.75
+        eq_weight = 0.25
+
+        final_score = overall_fb * fb_weight + eq_avg * eq_weight
+        final_score = max(0, min(100, final_score))
+
+        # --- Linear Transformation ---
+        # Map the typical range [35,75] to [10,90].
+        scaled_score = 2 * final_score - 60
+        scaled_score = max(10, min(90, scaled_score))
+        return scaled_score
 
 
 # Updated test cases
