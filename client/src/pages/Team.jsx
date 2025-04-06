@@ -454,7 +454,7 @@ const Team = () => {
                   {team.skills?.map((skill, index) => (
                     <motion.span
                       key={index}
-                      whileHover={{ scale: 1.05 }}
+                      whileHover={{ scale: 1 }}
                       className="px-3 py-1 text-sm bg-venom-purple/20 rounded-full text-ghost-lilac/80 hover:bg-venom-purple/30 transition-all duration-300 cursor-default"
                     >
                       {skill}
