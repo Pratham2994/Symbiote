@@ -35,6 +35,18 @@ export const navLinkHover = {
   active: { width: '100%' },
   transition: { duration: 0.3 }
 };
+
+// Standard glow animation for match scores and other highlighted elements
+export const standardGlow = {
+  initial: {
+    boxShadow: '0 0 0px rgba(147, 51, 234, 0.3)',
+  },
+  animate: {
+    boxShadow: '0 0 10px rgba(147, 51, 234, 0.5)',
+    transition: { duration: 1.5, repeat: Infinity, repeatType: "reverse" }
+  }
+};
+
 export const toastStyles = `
   .Toastify__toast-container {
     top: 20px !important;

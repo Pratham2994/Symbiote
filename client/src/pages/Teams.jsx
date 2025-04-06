@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { Users, Trophy, Calendar, User, Search, Clock, Github } from "lucide-react";
+import { Users, Trophy, Calendar, User, Search, Clock, Github, PlusCircle } from "lucide-react";
 import UserNavbar from "../components/UserNavbar";
 import { useTeam } from "../context/TeamContext";
 import { useAuth } from "../context/AuthContext";
@@ -184,6 +184,31 @@ const Teams = () => {
     </motion.div>
   );
 
+  // Empty state component for when there are no active teams
+  const EmptyTeamsState = () => (
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="flex flex-col items-center justify-center p-8 rounded-xl bg-venom-purple/5 border border-venom-purple/20 text-center"
+    >
+      <div className="w-16 h-16 rounded-full bg-venom-purple/10 flex items-center justify-center mb-4">
+        <PlusCircle size={32} className="text-venom-purple" />
+      </div>
+      <h3 className="text-xl font-semibold text-ghost-lilac mb-2">No Active Teams</h3>
+      <p className="text-ghost-lilac/70 mb-6 max-w-md">
+        You don't have any active teams yet. Join a competition and create a team to get started!
+      </p>
+      <motion.button
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        onClick={() => navigate('/dashboard/hackathons')}
+        className="px-4 py-2 bg-venom-purple/20 hover:bg-venom-purple/30 text-venom-purple rounded-lg transition-colors"
+      >
+        Browse Competitions
+      </motion.button>
+    </motion.div>
+  );
+
   return (
     <div className="min-h-screen bg-[#0B0B0B] text-ghost-lilac flex flex-col">
       <div className="absolute inset-0 bg-gradient-to-b from-void-black via-symbiote-purple/20 to-void-black"></div>
@@ -234,9 +259,15 @@ const Teams = () => {
               className="grid grid-cols-1 md:grid-cols-2 gap-6"
             >
               <AnimatePresence>
-                {activeTeams.map((team) => (
-                  <TeamCard key={team._id} team={team} isActive={true} />
-                ))}
+                {loading ? (
+                  <div className="col-span-2 text-center py-8 text-ghost-lilac/70">Loading teams...</div>
+                ) : activeTeams.length > 0 ? (
+                  activeTeams.map((team) => (
+                    <TeamCard key={team._id} team={team} isActive={true} />
+                  ))
+                ) : (
+                  <EmptyTeamsState />
+                )}
               </AnimatePresence>
             </motion.div>
           </div>

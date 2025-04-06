@@ -28,7 +28,18 @@ const findMatch = async (candidate1Scores, candidate2Scores, weights = null) => 
 
 const getFriendsByTeamAndCompetition = async (req, res) => {
     try {
-        const { team_id} = req.body;
+        console.log("req.body", req.user)
+        const { team_id } = req.body;
+        
+        // Check if user is authenticated
+        if (!req.user) {
+            return res.status(401).json({
+                success: false,
+                message: 'Authentication required'
+            });
+        }
+        
+        const currentUserId = req.user._id || req.user.id;
 
         // Input validation
         if (!team_id) {
@@ -111,20 +122,19 @@ const getFriendsByTeamAndCompetition = async (req, res) => {
             });
         }
 
-        // Get all friends of team members who have completed assessments
-        const teamMemberIds = team.members.map(member => member._id);
+        // Get current user's friends
+        const currentUser = await User.findById(currentUserId).select('friends');
         
-        // First get all friends of team members
-        const teamMembersWithFriends = await User.find({
-            _id: { $in: teamMemberIds }
-        }).select('friends');
-        
-        // Get unique friend IDs from all team members
-        const friendIds = [...new Set(teamMembersWithFriends.flatMap(member => member.friends))];
-        
+        if (!currentUser) {
+            return res.status(404).json({
+                success: false,
+                message: 'Current user not found'
+            });
+        }
+
         // Get friend details who have completed assessments
         const friends = await User.find({
-            _id: { $in: friendIds },
+            _id: { $in: currentUser.friends },
             frontendScore: { $exists: true, $ne: null },
             backendScore: { $exists: true, $ne: null },
             eqScore: { $exists: true, $ne: null }

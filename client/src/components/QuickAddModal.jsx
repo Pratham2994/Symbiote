@@ -1,12 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, UserPlus, Search } from 'lucide-react';
+import { X, UserPlus, Search, Sparkles } from 'lucide-react';
 import axios from '../utils/axios';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-toastify';
+import { standardGlow } from '../utils/animations';
+import { useNavigate } from 'react-router-dom';
 
 const QuickAddModal = ({ isOpen, onClose, teamId }) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [friends, setFriends] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -17,14 +20,13 @@ const QuickAddModal = ({ isOpen, onClose, teamId }) => {
       try {
         setLoading(true);
         setError(null);
-        const response = await axios.post("/searchForFriends/allFriends/", {
-          userId: user._id,
+        const response = await axios.post("/teams/viewFriends", {
+          team_id: teamId,
         });
         
-        if (Array.isArray(response.data)) {
-          setFriends(response.data);
-        } else if (response.data && Array.isArray(response.data.friends)) {
-          setFriends(response.data.friends);
+        if (response.data && response.data.success && Array.isArray(response.data.data.friends)) {
+          setFriends(response.data.data.friends);
+          console.log("friends", response.data.data.friends)
         } else {
           console.error("Unexpected response format:", response.data);
           setFriends([]);
@@ -59,12 +61,13 @@ const QuickAddModal = ({ isOpen, onClose, teamId }) => {
       }
     };
 
-    if (isOpen && user?._id) {
+    if (isOpen && teamId) {
       fetchFriends();
     }
-  }, [isOpen, user?._id]);
+  }, [isOpen, teamId]);
 
-  const handleAddFriend = async (friendId) => {
+  const handleAddFriend = async (friendId, e) => {
+    e.stopPropagation(); // Prevent card click event
     try {
       console.log('teamId:', teamId);
       console.log('friendId:', friendId);
@@ -105,10 +108,23 @@ const QuickAddModal = ({ isOpen, onClose, teamId }) => {
     }
   };
 
+  const handleCardClick = (friendId) => {
+    navigate(`/dashboard/profile/${friendId}`);
+  };
+
   const filteredFriends = friends.filter(friend => 
-    friend?.username?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    friend?.email?.toLowerCase().includes(searchQuery.toLowerCase())
+    friend?.username?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Sort friends by match score in descending order
+  const sortedFriends = [...filteredFriends].sort((a, b) => b.matchScore - a.matchScore);
+
+  // Format match score to percentage with 2 decimal places
+  const formatMatchScore = (score) => {
+    if (score === null || score === undefined) return 'N/A';
+    // The score is already in percentage format, so we don't need to multiply by 100
+    return `${score.toFixed(2)}%`;
+  };
 
   return (
     <AnimatePresence>
@@ -188,18 +204,19 @@ const QuickAddModal = ({ isOpen, onClose, teamId }) => {
                     <div className="text-center text-ghost-lilac/50">Loading friends...</div>
                   ) : error ? (
                     <div className="text-center text-red-400">{error}</div>
-                  ) : filteredFriends.length === 0 ? (
+                  ) : sortedFriends.length === 0 ? (
                     <div className="text-center text-ghost-lilac/50">
                       {searchQuery ? 'No matching friends found' : 'No friends available'}
                     </div>
                   ) : (
-                    filteredFriends.map((friend) => (
+                    sortedFriends.map((friend) => (
                       <motion.div
                         key={friend._id}
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.05 }}
-                        className="flex items-center justify-between p-3 rounded-lg bg-venom-purple/5 border border-venom-purple/20 group hover:border-venom-purple/40 transition-all"
+                        className="flex items-center justify-between p-3 rounded-lg bg-venom-purple/5 border border-venom-purple/20 group hover:border-venom-purple/40 transition-all cursor-pointer"
+                        onClick={() => handleCardClick(friend._id)}
                       >
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-full bg-venom-purple/20 flex items-center justify-center border border-venom-purple/30">
@@ -207,24 +224,44 @@ const QuickAddModal = ({ isOpen, onClose, teamId }) => {
                           </div>
                           <div>
                             <h3 className="font-medium text-ghost-lilac">{friend.username || 'Unknown User'}</h3>
-                            <p className="text-sm text-ghost-lilac/50">{friend.email || 'No email'}</p>
                           </div>
                         </div>
-                        <motion.button
-                          whileHover={{ 
-                            scale: 1.1,
-                            boxShadow: "0 0 15px rgba(147, 51, 234, 0.3)",
-                            transition: { duration: 0.05 }
-                          }}
-                          whileTap={{ 
-                            scale: 0.95,
-                            transition: { duration: 0.05 }
-                          }}
-                          className="p-2 rounded-full bg-venom-purple/20 border border-venom-purple/30 hover:bg-venom-purple/30 transition-all group-hover:border-venom-purple/40"
-                          onClick={() => handleAddFriend(friend._id)}
-                        >
-                          <UserPlus size={18} className="text-venom-purple" />
-                        </motion.button>
+                        <div className="flex items-center gap-3">
+                          {/* Match Score Display */}
+                          <motion.div 
+                            className="flex items-center gap-1 px-2 py-1 rounded-md bg-venom-purple/10 border border-venom-purple/20"
+                            whileHover={{ 
+                              scale: 1.05,
+                              boxShadow: "0 0 15px rgba(147, 51, 234, 0.3)",
+                              transition: { duration: 0.05 }
+                            }}
+                            variants={standardGlow}
+                            initial="initial"
+                            animate="animate"
+                            transition={{ repeat: Infinity, duration: 2 }}
+                          >
+                            <Sparkles size={16} className="text-venom-purple" />
+                            <span className="text-sm font-medium text-venom-purple">
+                              Team Match: {formatMatchScore(friend.matchScore)}
+                            </span>
+                          </motion.div>
+                          
+                          <motion.button
+                            whileHover={{ 
+                              scale: 1.1,
+                              boxShadow: "0 0 15px rgba(147, 51, 234, 0.3)",
+                              transition: { duration: 0.05 }
+                            }}
+                            whileTap={{ 
+                              scale: 0.95,
+                              transition: { duration: 0.05 }
+                            }}
+                            className="p-2 rounded-full bg-venom-purple/20 border border-venom-purple/30 hover:bg-venom-purple/30 transition-all group-hover:border-venom-purple/40"
+                            onClick={(e) => handleAddFriend(friend._id, e)}
+                          >
+                            <UserPlus size={18} className="text-venom-purple" />
+                          </motion.button>
+                        </div>
                       </motion.div>
                     ))
                   )}
@@ -238,4 +275,4 @@ const QuickAddModal = ({ isOpen, onClose, teamId }) => {
   );
 };
 
-export default QuickAddModal; 
+export default QuickAddModal;
