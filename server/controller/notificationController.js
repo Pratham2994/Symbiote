@@ -2,24 +2,6 @@ const Notification = require('../models/Notification');
 const User = require('../models/User');
 const Team = require('../models/Team');
 
-// Notification types
-const NOTIFICATION_TYPES = {
-  // Actionable notifications
-  FRIEND_REQUEST: 'FRIEND_REQUEST',
-  TEAM_INVITE: 'TEAM_INVITE',
-  TEAM_JOIN_REQUEST: 'TEAM_JOIN_REQUEST',
-  // Non-actionable notifications
-  FRIEND_REQUEST_ACCEPTED: 'FRIEND_REQUEST_ACCEPTED',
-  FRIEND_REQUEST_REJECTED: 'FRIEND_REQUEST_REJECTED',
-  TEAM_INVITE_ACCEPTED: 'TEAM_INVITE_ACCEPTED',
-  TEAM_INVITE_REJECTED: 'TEAM_INVITE_REJECTED',
-  TEAM_JOIN_REQUEST_ACCEPTED: 'TEAM_JOIN_REQUEST_ACCEPTED',
-  TEAM_JOIN_REQUEST_REJECTED: 'TEAM_JOIN_REQUEST_REJECTED',
-  TEAM_DELETED: 'TEAM_DELETED',
-  TEAM_MEMBER_LEFT: 'TEAM_MEMBER_LEFT',
-  TEAM_MEMBER_REMOVED: 'TEAM_MEMBER_REMOVED'
-};
-
 const notificationController = {
   // Get unread notifications for a user
   getNotifications: async (req, res) => {
@@ -82,97 +64,6 @@ const notificationController = {
         message: 'Error fetching notifications',
         error: error.message
       });
-    }
-  },
-
-  // Create a new notification
-  createNotification: async (recipientId, senderId, type, teamId = null) => {
-    try {
-      const actionRequired = [
-        NOTIFICATION_TYPES.FRIEND_REQUEST,
-        NOTIFICATION_TYPES.TEAM_INVITE,
-        NOTIFICATION_TYPES.TEAM_JOIN_REQUEST
-      ].includes(type);
-
-      // Get sender info first
-      const sender = await User.findById(senderId);
-      if (!sender) {
-        throw new Error('Sender not found');
-      }
-
-      // Format message based on type
-      let message;
-      switch (type) {
-        case NOTIFICATION_TYPES.FRIEND_REQUEST:
-          message = `${sender.username} wants to be your friend`;
-          break;
-        case NOTIFICATION_TYPES.TEAM_INVITE:
-          const team = await Team.findById(teamId);
-          message = `${sender.username} invited you to join team ${team?.name || 'Unknown'}`;
-          break;
-        case NOTIFICATION_TYPES.TEAM_JOIN_REQUEST:
-          const requestedTeam = await Team.findById(teamId);
-          message = `${sender.username} wants to join team ${requestedTeam?.name || 'Unknown'}`;
-          break;
-        case NOTIFICATION_TYPES.FRIEND_REQUEST_ACCEPTED:
-          message = `${sender.username} accepted your friend request`;
-          break;
-        case NOTIFICATION_TYPES.TEAM_INVITE_ACCEPTED:
-          message = `${sender.username} accepted your team invitation`;
-          break;
-        case NOTIFICATION_TYPES.TEAM_JOIN_REQUEST_ACCEPTED:
-          message = `${sender.username} accepted your request to join the team`;
-          break;
-        case NOTIFICATION_TYPES.TEAM_DELETED:
-          const deletedTeam = await Team.findById(teamId);
-          message = `Team ${deletedTeam?.name || 'Unknown'} has been deleted`;
-          break;
-        case NOTIFICATION_TYPES.TEAM_MEMBER_LEFT:
-          const leftTeam = await Team.findById(teamId);
-          message = `${sender.username} has left team ${leftTeam?.name || 'Unknown'}`;
-          break;
-        case NOTIFICATION_TYPES.TEAM_MEMBER_REMOVED:
-          const removedTeam = await Team.findById(teamId);
-          const teamCreator = await User.findById(removedTeam?.createdBy);
-          message = `You were removed from team ${removedTeam?.name || 'Unknown'} by ${teamCreator?.username || 'Unknown'}`;
-          break;
-        default:
-          message = 'New notification';
-      }
-
-      const notification = await Notification.create({
-        recipient: recipientId,
-        sender: senderId,
-        type,
-        team: teamId,
-        message,
-        actionRequired,
-        read: false,
-        seen: false
-      });
-
-      await notification.populate('sender', 'username email');
-      if (teamId) {
-        await notification.populate('team', 'name');
-      }
-
-      // Get updated unread count
-      const unreadCount = await Notification.countDocuments({
-        recipient: recipientId,
-        read: false
-      });
-
-      // Emit WebSocket events
-      const io = global.io;
-      if (io) {
-        io.to(recipientId.toString()).emit('newNotification', notification);
-        io.to(recipientId.toString()).emit('notificationCount', { count: unreadCount });
-      }
-
-      return notification;
-    } catch (error) {
-      console.error('Error creating notification:', error);
-      return null;
     }
   },
 

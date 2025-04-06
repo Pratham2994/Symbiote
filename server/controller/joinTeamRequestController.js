@@ -2,6 +2,7 @@ const JoinRequest = require('../models/JoinRequest')
 const Team = require('../models/Team');
 const User = require('../models/User');
 const Notification = require('../models/Notification');
+const { sendNotificationEmail, NOTIFICATION_TYPES } = require('../services/emailService');
 
 const emitNotificationUpdate = async (userId) => {
   try {
@@ -25,7 +26,7 @@ const joinTeamRequest = async(req, res)=>{
             });
         }
 
-        const team = await Team.findById(teamId).populate('createdBy', 'username');
+        const team = await Team.findById(teamId).populate('createdBy', 'username email');
         if (!team) {
             return res.status(404).json({
                 success: false,
@@ -79,6 +80,25 @@ const joinTeamRequest = async(req, res)=>{
             await emitNotificationUpdate(team.createdBy._id);
         }
 
+        // Send email notification in the background
+        if (team.createdBy.email) {
+            // Use setTimeout to run this asynchronously after the response is sent
+            setTimeout(async () => {
+                try {
+                    await sendNotificationEmail(
+                        team.createdBy.email,
+                        NOTIFICATION_TYPES.TEAM_JOIN_REQUEST,
+                        {
+                            senderUsername: user.username,
+                            teamName: team.name
+                        }
+                    );
+                } catch (emailError) {
+                    console.error('Error sending email notification:', emailError);
+                }
+            }, 0);
+        }
+
         return res.status(201).json({
             success: true,
             message: "Join request sent successfully",
@@ -119,7 +139,7 @@ const handleJoinRequest = async(req, res)=>{
 
         const request = await JoinRequest.findById(requestId)
             .populate('team', 'members createdBy name')
-            .populate('user', 'username');
+            .populate('user', 'username email');
         
         if(!request){
             return res.status(400).json({
@@ -204,6 +224,24 @@ const handleJoinRequest = async(req, res)=>{
                 await emitNotificationUpdate(userId);
             }
 
+            // Send email notification in the background
+            if (request.user.email) {
+                // Use setTimeout to run this asynchronously after the response is sent
+                setTimeout(async () => {
+                    try {
+                        await sendNotificationEmail(
+                            request.user.email,
+                            NOTIFICATION_TYPES.TEAM_JOIN_REQUEST_REJECTED,
+                            {
+                                teamName: request.team.name
+                            }
+                        );
+                    } catch (emailError) {
+                        console.error('Error sending email notification:', emailError);
+                    }
+                }, 0);
+            }
+
             return res.status(200).json({
                 success: true,
                 message: `Request ${request.status}`,
@@ -256,6 +294,24 @@ const handleJoinRequest = async(req, res)=>{
                 io.to(request.user._id.toString()).emit('notificationCount', { count: recipientUnreadCount });
                 io.to(userId.toString()).emit('notificationDeleted');
                 await emitNotificationUpdate(userId);
+            }
+
+            // Send email notification in the background
+            if (request.user.email) {
+                // Use setTimeout to run this asynchronously after the response is sent
+                setTimeout(async () => {
+                    try {
+                        await sendNotificationEmail(
+                            request.user.email,
+                            NOTIFICATION_TYPES.TEAM_JOIN_REQUEST_ACCEPTED,
+                            {
+                                teamName: request.team.name
+                            }
+                        );
+                    } catch (emailError) {
+                        console.error('Error sending email notification:', emailError);
+                    }
+                }, 0);
             }
 
             return res.status(200).json({

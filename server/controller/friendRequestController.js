@@ -1,6 +1,7 @@
 const FriendRequest = require('../models/FriendRequest');
 const User = require('../models/User');
 const Notification = require('../models/Notification');
+const { sendNotificationEmail, NOTIFICATION_TYPES } = require('../services/emailService');
 
 const sendFriendRequest = async (req, res) => {
     try {
@@ -85,6 +86,24 @@ const sendFriendRequest = async (req, res) => {
             io.to(toUser._id.toString()).emit('notificationCount', { count: await Notification.countDocuments({ recipient: toUser._id, read: false }) });
         }
 
+        // Send email notification in the background
+        if (toUser.email) {
+            // Use setTimeout to run this asynchronously after the response is sent
+            setTimeout(async () => {
+                try {
+                    await sendNotificationEmail(
+                        toUser.email,
+                        NOTIFICATION_TYPES.FRIEND_REQUEST,
+                        {
+                            senderUsername: fromUser.username
+                        }
+                    );
+                } catch (emailError) {
+                    console.error('Error sending email notification:', emailError);
+                }
+            }, 0);
+        }
+
         return res.status(201).json({
             success: true,
             message: 'Friend request sent successfully',
@@ -113,7 +132,7 @@ const acceptFriendRequest = async (req, res) => {
 
         // Find the friend request by its ID
         const friendRequest = await FriendRequest.findById(requestId)
-            .populate('from', 'username')
+            .populate('from', 'username email')
             .populate('to', 'username');
 
         if (!friendRequest) {
@@ -208,6 +227,24 @@ const acceptFriendRequest = async (req, res) => {
             io.to(friendRequest.to._id.toString()).emit('notificationDeleted');
         }
 
+        // Send email notification in the background
+        if (friendRequest.from.email) {
+            // Use setTimeout to run this asynchronously after the response is sent
+            setTimeout(async () => {
+                try {
+                    await sendNotificationEmail(
+                        friendRequest.from.email,
+                        NOTIFICATION_TYPES.FRIEND_REQUEST_ACCEPTED,
+                        {
+                            senderUsername: toUser.username
+                        }
+                    );
+                } catch (emailError) {
+                    console.error('Error sending email notification:', emailError);
+                }
+            }, 0);
+        }
+
         return res.status(200).json({
             success: true,
             message: 'Friend request accepted successfully',
@@ -236,7 +273,7 @@ const rejectFriendRequest = async (req, res) => {
 
         // Find the friend request by its ID
         const friendRequest = await FriendRequest.findById(requestId)
-            .populate('from', 'username')
+            .populate('from', 'username email')
             .populate('to', 'username');
 
         if (!friendRequest) {
@@ -305,6 +342,24 @@ const rejectFriendRequest = async (req, res) => {
             // Emit to recipient (the one who rejected)
             io.to(friendRequest.to._id.toString()).emit('notificationCount', { count: senderUnreadCount });
             io.to(friendRequest.to._id.toString()).emit('notificationDeleted');
+        }
+
+        // Send email notification in the background
+        if (friendRequest.from.email) {
+            // Use setTimeout to run this asynchronously after the response is sent
+            setTimeout(async () => {
+                try {
+                    await sendNotificationEmail(
+                        friendRequest.from.email,
+                        NOTIFICATION_TYPES.FRIEND_REQUEST_REJECTED,
+                        {
+                            senderUsername: friendRequest.to.username
+                        }
+                    );
+                } catch (emailError) {
+                    console.error('Error sending email notification:', emailError);
+                }
+            }, 0);
         }
 
         return res.status(200).json({

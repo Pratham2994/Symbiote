@@ -2,6 +2,7 @@ const TeamInvite = require('../models/TeamInvite')
 const Team = require('../models/Team');
 const User = require('../models/User');
 const Notification = require('../models/Notification');
+const { sendNotificationEmail, NOTIFICATION_TYPES } = require('../services/emailService');
 
 const emitNotificationUpdate = async (userId) => {
   try {
@@ -86,6 +87,9 @@ const inviteToTeam = async(req, res)=>{
             });
         }
 
+        // Get the friend's email for notification
+        const friend = await User.findById(friendId).select('email');
+
         const notification = await Notification.create({
             recipient: friendId,
             sender: userId,
@@ -111,6 +115,25 @@ const inviteToTeam = async(req, res)=>{
         if (io) {
             io.to(friendId.toString()).emit('newNotification', notification);
             await emitNotificationUpdate(friendId);
+        }
+
+        // Send email notification in the background
+        if (friend && friend.email) {
+            // Use setTimeout to run this asynchronously after the response is sent
+            setTimeout(async () => {
+                try {
+                    await sendNotificationEmail(
+                        friend.email,
+                        NOTIFICATION_TYPES.TEAM_INVITE,
+                        {
+                            senderUsername: fromUser.username,
+                            teamName: team.name
+                        }
+                    );
+                } catch (emailError) {
+                    console.error('Error sending email notification:', emailError);
+                }
+            }, 0);
         }
 
         return res.status(201).json({
@@ -155,7 +178,7 @@ const handleTeamInvite = async (req, res) => {
         // Find the invitation
         const invite = await TeamInvite.findById(inviteId)
             .populate('team', 'members competition name')
-            .populate('fromUser', 'username');
+            .populate('fromUser', 'username email');
             
         if (!invite) {
             return res.status(404).json({
@@ -240,6 +263,25 @@ const handleTeamInvite = async (req, res) => {
                 await emitNotificationUpdate(userId);
             }
 
+            // Send email notification in the background
+            if (invite.fromUser.email) {
+                // Use setTimeout to run this asynchronously after the response is sent
+                setTimeout(async () => {
+                    try {
+                        await sendNotificationEmail(
+                            invite.fromUser.email,
+                            NOTIFICATION_TYPES.TEAM_INVITE_REJECTED,
+                            {
+                                senderUsername: currentUser.username,
+                                teamName: invite.team.name
+                            }
+                        );
+                    } catch (emailError) {
+                        console.error('Error sending email notification:', emailError);
+                    }
+                }, 0);
+            }
+
             return res.status(200).json({
                 success: true,
                 message: `Invitation ${invite.status} successfully`
@@ -316,6 +358,25 @@ const handleTeamInvite = async (req, res) => {
                 io.to(invite.fromUser._id.toString()).emit('notificationCount', { count: recipientUnreadCount });
                 io.to(userId.toString()).emit('notificationDeleted');
                 await emitNotificationUpdate(userId);
+            }
+
+            // Send email notification in the background
+            if (invite.fromUser.email) {
+                // Use setTimeout to run this asynchronously after the response is sent
+                setTimeout(async () => {
+                    try {
+                        await sendNotificationEmail(
+                            invite.fromUser.email,
+                            NOTIFICATION_TYPES.TEAM_INVITE_ACCEPTED,
+                            {
+                                senderUsername: currentUser.username,
+                                teamName: invite.team.name
+                            }
+                        );
+                    } catch (emailError) {
+                        console.error('Error sending email notification:', emailError);
+                    }
+                }, 0);
             }
 
             return res.status(200).json({

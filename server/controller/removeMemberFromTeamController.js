@@ -1,17 +1,20 @@
 const Team = require('../models/Team');
 const User = require('../models/User');
-const Notification = require('../models/Notification');
 const TeamInvite = require('../models/TeamInvite');
 const JoinRequest = require('../models/JoinRequest');
-const notificationController = require('./notificationController');
+const Notification = require('../models/Notification');
+const { sendNotificationEmail, NOTIFICATION_TYPES } = require('../services/emailService');
 
 exports.removeMemberFromTeam = async (req, res) => {
     try {
+        console.log('Remove member request body:', req.body);
         const { teamId, memberId } = req.body;
         const requesterId = req.user.id;
+        console.log('Parsed values:', { teamId, memberId, requesterId });
 
         // Validate required fields
         if (!teamId || !memberId) {
+            console.log('Missing required fields:', { teamId, memberId });
             return res.status(400).json({
                 success: false,
                 message: 'Team ID and Member ID are required'
@@ -19,50 +22,45 @@ exports.removeMemberFromTeam = async (req, res) => {
         }
 
         // Find the team
+        console.log('Looking for team with ID:', teamId);
         const team = await Team.findById(teamId);
         if (!team) {
+            console.log('Team not found with ID:', teamId);
             return res.status(404).json({
                 success: false,
                 message: 'Team not found'
             });
         }
+        console.log('Team found:', team.name);
 
-        // Check if the requester is the team creator or the member themselves
-        if (team.createdBy.toString() !== requesterId.toString() && requesterId.toString() !== memberId.toString()) {
+        // Check if the requester is the team creator
+        if (team.createdBy.toString() !== requesterId.toString()) {
+            console.log('Unauthorized: Requester is not team creator', { 
+                requesterId, 
+                teamCreatorId: team.createdBy 
+            });
             return res.status(403).json({
                 success: false,
-                message: 'Only the team creator or the member themselves can remove a member'
+                message: 'Only the team creator can remove members'
             });
         }
 
-        // Check if the member is part of the team
-        if (!team.members.includes(memberId)) {
-            return res.status(400).json({
-                success: false,
-                message: 'Member is not part of the team'
-            });
-        }
-
-        // Prevent removal of the team creator unless it's a self-removal
-        if (team.createdBy.toString() === memberId.toString() && requesterId.toString() !== memberId.toString()) {
-            return res.status(403).json({
-                success: false,
-                message: 'Cannot remove the team creator'
-            });
-        }
-
-        // Get the member's username for the notification
-        const member = await User.findById(memberId).select('username');
+        // Find the member to be removed
+        console.log('Looking for member with ID:', memberId);
+        const member = await User.findById(memberId);
         if (!member) {
+            console.log('Member not found with ID:', memberId);
             return res.status(404).json({
                 success: false,
                 message: 'Member not found'
             });
         }
+        console.log('Member found:', member.username);
 
         // Remove the member from the team
         team.members = team.members.filter(id => id.toString() !== memberId.toString());
         await team.save();
+        console.log('Member removed from team');
 
         // Delete any pending invites for the removed member
         await TeamInvite.deleteMany({ team: teamId, recipient: memberId });
@@ -70,14 +68,24 @@ exports.removeMemberFromTeam = async (req, res) => {
         // Delete any pending join requests from the removed member
         await JoinRequest.deleteMany({ team: teamId, user: memberId });
 
-        // Create a notification for the removed member using the notification controller
-        // This will also send an email notification
-        const notification = await notificationController.createNotification(
-            memberId,
-            requesterId,
-            'TEAM_MEMBER_REMOVED',
-            teamId
-        );
+        // Create a notification for the removed member
+        const notification = await Notification.create({
+            recipient: memberId,
+            sender: requesterId,
+            type: 'TEAM_MEMBER_REMOVED',
+            team: teamId,
+            message: `You were removed from team ${team.name}`,
+            actionRequired: false,
+            actionType: null,
+            actionData: {
+                teamId: teamId
+            },
+            read: false
+        });
+
+        // Populate the notification with sender and team info
+        await notification.populate('sender', 'username');
+        await notification.populate('team', 'name');
 
         // Emit WebSocket event for the new notification
         const io = global.io;
@@ -89,9 +97,28 @@ exports.removeMemberFromTeam = async (req, res) => {
             });
         }
 
+        // Send email notification in the background
+        if (member && member.email) {
+            // Use setTimeout to run this asynchronously after the response is sent
+            setTimeout(async () => {
+                try {
+                    await sendNotificationEmail(
+                        member.email,
+                        NOTIFICATION_TYPES.TEAM_MEMBER_REMOVED,
+                        {
+                            teamName: team.name
+                        }
+                    );
+                } catch (emailError) {
+                    console.error('Error sending email notification:', emailError);
+                }
+            }, 0);
+        }
+
         return res.status(200).json({
             success: true,
-            message: 'Member removed successfully'
+            message: 'Member removed successfully',
+            team
         });
     } catch (error) {
         console.error('Error removing member from team:', error);

@@ -4,6 +4,7 @@ const Notification = require('../models/Notification');
 const TeamInvite = require('../models/TeamInvite');
 const JoinRequest = require('../models/JoinRequest');
 const Chat = require('../models/Chat');
+const { sendNotificationEmail, NOTIFICATION_TYPES } = require('../services/emailService');
 
 deleteTeam = async (req, res) => {
     try {
@@ -36,7 +37,7 @@ deleteTeam = async (req, res) => {
         }
 
         // Get all team members for notifications
-        const teamMembers = await User.find({ _id: { $in: team.members } }).select('username _id');
+        const teamMembers = await User.find({ _id: { $in: team.members } }).select('username _id email');
         
         // Create notifications for all team members
         const notificationPromises = teamMembers.map(async (member) => {
@@ -94,6 +95,32 @@ deleteTeam = async (req, res) => {
                 io.to(recipientId).emit('notificationCount', { 
                     count: await Notification.countDocuments({ recipient: recipientId, read: false }) 
                 });
+            }
+        }
+        
+        // Send email notifications in the background
+        for (const member of teamMembers) {
+            // Skip email for the creator
+            if (member._id.toString() === requesterId.toString()) {
+                continue;
+            }
+            
+            if (member.email) {
+                // Use setTimeout to run this asynchronously after the response is sent
+                setTimeout(async () => {
+                    try {
+                        await sendNotificationEmail(
+                            member.email,
+                            NOTIFICATION_TYPES.TEAM_DELETED,
+                            {
+                                teamName: team.name,
+                                senderUsername: (await User.findById(requesterId).select('username')).username
+                            }
+                        );
+                    } catch (emailError) {
+                        console.error('Error sending email notification:', emailError);
+                    }
+                }, 0);
             }
         }
         
@@ -173,6 +200,9 @@ leaveTeam = async (req, res) => {
         // Delete any pending join requests from the user
         await JoinRequest.deleteMany({ team: teamId, user: requesterId });
 
+        // Get the team creator's email for notification
+        const teamCreator = await User.findById(team.createdBy).select('email');
+        
         // Create a notification for the team creator only
         // The user who is leaving should not receive any notifications
         const notification = await Notification.create({
@@ -196,6 +226,25 @@ leaveTeam = async (req, res) => {
             io.to(recipientId).emit('notificationCount', { 
                 count: await Notification.countDocuments({ recipient: recipientId, read: false }) 
             });
+        }
+
+        // Send email notification in the background
+        if (teamCreator && teamCreator.email) {
+            // Use setTimeout to run this asynchronously after the response is sent
+            setTimeout(async () => {
+                try {
+                    await sendNotificationEmail(
+                        teamCreator.email,
+                        NOTIFICATION_TYPES.TEAM_MEMBER_LEFT,
+                        {
+                            teamName: team.name,
+                            senderUsername: notification.sender.username
+                        }
+                    );
+                } catch (emailError) {
+                    console.error('Error sending email notification:', emailError);
+                }
+            }, 0);
         }
 
         return res.status(200).json({
