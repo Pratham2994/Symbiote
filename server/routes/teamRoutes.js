@@ -5,7 +5,7 @@ const { createTeam } = require('../controller/createTeamController');
 const { getTeamsByUserAndCompetition } = require('../controller/viewTeamController');
 const { getUserTeams, getOneTeam } = require('../controller/getTeamsController');
 const { removeMemberFromTeam } = require('../controller/removeMemberFromTeamController');
-const { deleteTeam } = require('../controller/deleteTeamController');
+const { deleteTeam, leaveTeam } = require('../controller/deleteTeamController');
 const {joinTeamRequest, handleJoinRequest} = require('../controller/joinTeamRequestController')
 const {inviteToTeam, handleTeamInvite} = require('../controller/inviteToTeamController')
 
@@ -19,5 +19,6 @@ router.post('/invite', protect , inviteToTeam)
 router.post('/handleTeamInvite', protect , handleTeamInvite)
 router.post('/removeMember', protect, removeMemberFromTeam);
 router.post('/delete', protect, deleteTeam);
+router.post('/leave', protect, leaveTeam);
 
 module.exports = router; 

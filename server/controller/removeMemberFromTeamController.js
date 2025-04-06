@@ -3,6 +3,7 @@ const User = require('../models/User');
 const Notification = require('../models/Notification');
 const TeamInvite = require('../models/TeamInvite');
 const JoinRequest = require('../models/JoinRequest');
+const notificationController = require('./notificationController');
 
 exports.removeMemberFromTeam = async (req, res) => {
     try {
@@ -69,18 +70,14 @@ exports.removeMemberFromTeam = async (req, res) => {
         // Delete any pending join requests from the removed member
         await JoinRequest.deleteMany({ team: teamId, user: memberId });
 
-        // Create a notification for the removed member
-        const notification = await Notification.create({
-            recipient: memberId,
-            sender: requesterId,
-            type: 'TEAM_MEMBER_REMOVED',
-            message: `You have been removed from team ${team.name}`,
-            actionRequired: false,
-            read: false
-        });
-
-        // Populate the notification with sender info
-        await notification.populate('sender', 'username');
+        // Create a notification for the removed member using the notification controller
+        // This will also send an email notification
+        const notification = await notificationController.createNotification(
+            memberId,
+            requesterId,
+            'TEAM_MEMBER_REMOVED',
+            teamId
+        );
 
         // Emit WebSocket event for the new notification
         const io = global.io;

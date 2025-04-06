@@ -15,7 +15,9 @@ const NOTIFICATION_TYPES = {
   TEAM_INVITE_REJECTED: 'TEAM_INVITE_REJECTED',
   TEAM_JOIN_REQUEST_ACCEPTED: 'TEAM_JOIN_REQUEST_ACCEPTED',
   TEAM_JOIN_REQUEST_REJECTED: 'TEAM_JOIN_REQUEST_REJECTED',
-  TEAM_DELETED: 'TEAM_DELETED'
+  TEAM_DELETED: 'TEAM_DELETED',
+  TEAM_MEMBER_LEFT: 'TEAM_MEMBER_LEFT',
+  TEAM_MEMBER_REMOVED: 'TEAM_MEMBER_REMOVED'
 };
 
 const notificationController = {
@@ -124,6 +126,15 @@ const notificationController = {
         case NOTIFICATION_TYPES.TEAM_DELETED:
           const deletedTeam = await Team.findById(teamId);
           message = `Team ${deletedTeam?.name || 'Unknown'} has been deleted`;
+          break;
+        case NOTIFICATION_TYPES.TEAM_MEMBER_LEFT:
+          const leftTeam = await Team.findById(teamId);
+          message = `${sender.username} has left team ${leftTeam?.name || 'Unknown'}`;
+          break;
+        case NOTIFICATION_TYPES.TEAM_MEMBER_REMOVED:
+          const removedTeam = await Team.findById(teamId);
+          const teamCreator = await User.findById(removedTeam?.createdBy);
+          message = `You were removed from team ${removedTeam?.name || 'Unknown'} by ${teamCreator?.username || 'Unknown'}`;
           break;
         default:
           message = 'New notification';

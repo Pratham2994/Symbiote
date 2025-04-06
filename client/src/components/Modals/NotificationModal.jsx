@@ -123,14 +123,8 @@ const NotificationModal = ({ isOpen, onClose }) => {
     } catch (error) {
       console.error('Error fetching notifications:', error);
       toast.error('Failed to load notifications', {
-        position: "bottom-right",
-        theme: "dark",
-        style: {
-          background: '#0B0B0B',
-          border: '1px solid rgba(139, 92, 246, 0.2)',
-          boxShadow: '0 0 10px rgba(139, 92, 246, 0.1)',
-          color: '#E5E7EB'
-        }
+        position: "top-right",
+        theme: "dark"
       });
     } finally {
       setIsLoading(false);
@@ -193,27 +187,15 @@ const NotificationModal = ({ isOpen, onClose }) => {
         }
         
         toast.success(`${type.toLowerCase().replace(/_/g, ' ')} ${action}ed`, {
-          position: "bottom-right",
-          theme: "dark",
-          style: {
-            background: '#0B0B0B',
-            border: '1px solid rgba(139, 92, 246, 0.2)',
-            boxShadow: '0 0 10px rgba(139, 92, 246, 0.1)',
-            color: '#E5E7EB'
-          }
+          position: "top-right",
+          theme: "dark"
         });
       }
     } catch (error) {
       console.error('Error handling notification action:', error);
       toast.error(error.response?.data?.message || 'Failed to process your request', {
-        position: "bottom-right",
-        theme: "dark",
-        style: {
-          background: '#0B0B0B',
-          border: '1px solid rgba(139, 92, 246, 0.2)',
-          boxShadow: '0 0 10px rgba(139, 92, 246, 0.1)',
-          color: '#E5E7EB'
-        }
+        position: "top-right",
+        theme: "dark"
       });
     }
   };
@@ -222,14 +204,16 @@ const NotificationModal = ({ isOpen, onClose }) => {
   const getNotificationIcon = (type) => {
     switch (type) {
       case 'FRIEND_REQUEST':
-      case 'FRIEND_REQUEST_ACCEPTED':
         return <UserPlus className="w-5 h-5 text-venom-purple" />;
       case 'TEAM_INVITE':
-      case 'TEAM_INVITE_ACCEPTED':
+        return <Users className="w-5 h-5 text-venom-purple" />;
       case 'TEAM_JOIN_REQUEST':
-      case 'TEAM_JOIN_ACCEPTED':
         return <Users className="w-5 h-5 text-venom-purple" />;
       case 'TEAM_DELETED':
+        return <XCircle className="w-5 h-5 text-red-400" />;
+      case 'TEAM_MEMBER_LEFT':
+        return <Users className="w-5 h-5 text-amber-400" />;
+      case 'TEAM_MEMBER_REMOVED':
         return <XCircle className="w-5 h-5 text-red-400" />;
       default:
         return <Bell className="w-5 h-5 text-venom-purple" />;

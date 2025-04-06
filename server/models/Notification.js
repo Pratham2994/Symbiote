@@ -23,7 +23,9 @@ const notificationSchema = new mongoose.Schema({
       'TEAM_JOIN_REQUEST',
       'TEAM_JOIN_REQUEST_ACCEPTED',
       'TEAM_JOIN_REQUEST_REJECTED',
-      'TEAM_DELETED'
+      'TEAM_DELETED',
+      'TEAM_MEMBER_LEFT',
+      'TEAM_MEMBER_REMOVED'
     ],
     required: true
   },

@@ -36,6 +36,9 @@ export const navLinkHover = {
   transition: { duration: 0.3 }
 };
 export const toastStyles = `
+  .Toastify__toast-container {
+    top: 20px !important;
+  }
   .Toastify__toast-icon svg {
     fill: #8B5CF6 !important;
   }

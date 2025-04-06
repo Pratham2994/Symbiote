@@ -109,6 +109,107 @@ deleteTeam = async (req, res) => {
             error: error.message
         });
     }
-}; 
+};
 
-module.exports = { deleteTeam };
+leaveTeam = async (req, res) => {
+    try {
+        const { teamId } = req.body;
+        const requesterId = req.user.id;
+
+        // Validate required fields
+        if (!teamId) {
+            return res.status(400).json({
+                success: false,
+                message: 'Team ID is required'
+            });
+        }
+
+        // Find the team
+        const team = await Team.findById(teamId);
+        if (!team) {
+            return res.status(404).json({
+                success: false,
+                message: 'Team not found'
+            });
+        }
+
+        // Check if the requester is a member of the team
+        if (!team.members.includes(requesterId)) {
+            return res.status(403).json({
+                success: false,
+                message: 'You are not a member of this team'
+            });
+        }
+
+        // Check if the requester is the team creator
+        if (team.createdBy.toString() === requesterId.toString()) {
+            return res.status(403).json({
+                success: false,
+                message: 'Team creator cannot leave the team. Please delete the team instead.'
+            });
+        }
+
+        // Get the user's username for the notification
+        const user = await User.findById(requesterId).select('username');
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+
+        // Remove the user from the team
+        team.members = team.members.filter(id => id.toString() !== requesterId.toString());
+        await team.save();
+
+        // Remove the team from the user's teams list
+        await User.findByIdAndUpdate(requesterId, {
+            $pull: { teams: teamId }
+        });
+
+        // Delete any pending invites for the user
+        await TeamInvite.deleteMany({ team: teamId, recipient: requesterId });
+
+        // Delete any pending join requests from the user
+        await JoinRequest.deleteMany({ team: teamId, user: requesterId });
+
+        // Create a notification for the team creator only
+        // The user who is leaving should not receive any notifications
+        const notification = await Notification.create({
+            recipient: team.createdBy,
+            sender: requesterId,
+            type: 'TEAM_MEMBER_LEFT',
+            message: `${user.username} has left team ${team.name}`,
+            actionRequired: false,
+            read: false
+        });
+
+        // Populate the notification with sender info
+        await notification.populate('sender', 'username');
+
+        // Emit WebSocket event for the new notification
+        // Only emit to the team creator, not to the user who is leaving
+        const io = global.io;
+        if (io) {
+            const recipientId = team.createdBy.toString();
+            io.to(recipientId).emit('newNotification', notification);
+            io.to(recipientId).emit('notificationCount', { 
+                count: await Notification.countDocuments({ recipient: recipientId, read: false }) 
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: 'Successfully left the team'
+        });
+    } catch (error) {
+        console.error('Error leaving team:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Internal server error',
+            error: error.message
+        });
+    }
+};
+
+module.exports = { deleteTeam, leaveTeam };

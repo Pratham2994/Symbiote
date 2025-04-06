@@ -70,9 +70,16 @@ export const NotificationProvider = ({ children }) => {
     });
 
     // Handle new notifications
-    newSocket.on('newNotification', () => {
-      console.log('NotificationContext: New notification received');
-      setUnreadCount(prev => prev + 1);
+    newSocket.on('newNotification', (notification) => {
+      console.log('NotificationContext: New notification received:', notification);
+      
+      // Only increment the count if the notification is for the current user
+      if (notification && notification.recipient && notification.recipient._id === user._id) {
+        console.log('NotificationContext: Incrementing count for current user');
+        setUnreadCount(prev => prev + 1);
+      } else {
+        console.log('NotificationContext: Notification not for current user, ignoring count increment');
+      }
     });
 
     // Handle notification deletion
@@ -110,4 +117,6 @@ export const NotificationProvider = ({ children }) => {
       {children}
     </NotificationContext.Provider>
   );
-}; 
+};
+
+export default NotificationContext; 

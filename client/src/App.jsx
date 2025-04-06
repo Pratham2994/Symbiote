@@ -20,19 +20,21 @@ function App() {
             <style>{scrollbarStyles}</style>
             <RouterProvider router={router} />
             <ToastContainer
-            position="top-right"
-            autoClose={3000}
-            hideProgressBar={false}
-            newestOnTop
-            closeOnClick
-            rtl={false}
-            pauseOnFocusLoss
-            draggable
-            pauseOnHover
-            theme="dark"
-          />
-        </TeamProvider>
-      </HackathonProvider>
+              position="top-right"
+              autoClose={3000}
+              hideProgressBar={false}
+              newestOnTop
+              closeOnClick
+              rtl={false}
+              pauseOnFocusLoss
+              draggable
+              pauseOnHover
+              theme="dark"
+              className="mt-7"
+              toastClassName="!mt-7"
+            />
+          </TeamProvider>
+        </HackathonProvider>
       </NotificationProvider>
     </AuthProvider>
   );
