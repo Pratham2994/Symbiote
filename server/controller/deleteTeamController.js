@@ -3,7 +3,6 @@ const User = require('../models/User');
 const Notification = require('../models/Notification');
 const TeamInvite = require('../models/TeamInvite');
 const JoinRequest = require('../models/JoinRequest');
-const Chat = require('../models/Chat');
 const { sendNotificationEmail, NOTIFICATION_TYPES } = require('../services/emailService');
 
 deleteTeam = async (req, res) => {
@@ -70,10 +69,7 @@ deleteTeam = async (req, res) => {
         // Delete all join requests
         await JoinRequest.deleteMany({ team: teamId });
         
-        // Delete the team's group chat if it exists
-        if (team.groupChat) {
-            await Chat.findByIdAndDelete(team.groupChat);
-        }
+
         
         // Remove the team from all members' teams lists
         // This assumes there's a teams field in the User model
