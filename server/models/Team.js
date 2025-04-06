@@ -17,7 +17,7 @@ const teamSchema = new mongoose.Schema({
   competition: { type: mongoose.Schema.Types.ObjectId, ref: 'Competition' },
 
   // Team collaboration
-  groupChat: { type: mongoose.Schema.Types.ObjectId, ref: 'Chat' },
+  groupChat: { type: mongoose.Schema.Types.ObjectId, ref: 'GroupChat' },
 
   // Optional: Store pending invites or join requests as IDs
   // (Alternatively, use separate collections for invites/requests)

@@ -4,8 +4,10 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Users, Trophy, Star, MessageSquare, UserPlus, ArrowLeft, Calendar, Github, Trash2, LogOut, XCircle } from 'lucide-react';
 import { useTeam } from '../context/TeamContext';
 import { useAuth } from '../context/AuthContext';
+import { useGroupChat } from '../context/GroupChatContext';
 import UserNavbar from '../components/UserNavbar';
 import QuickAddModal from '../components/QuickAddModal';
+import GroupChatModal from '../components/GroupChatModal';
 import { toast } from 'react-toastify';
 import axios from 'axios';
 
@@ -14,6 +16,7 @@ const Team = () => {
   const navigate = useNavigate();
   const { fetchTeamById, loading, error } = useTeam();
   const { user } = useAuth();
+  const { getUnreadCount, createGroupChat } = useGroupChat();
   const [team, setTeam] = useState(null);
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
@@ -23,6 +26,8 @@ const Team = () => {
   const [isRemoveMemberModalOpen, setIsRemoveMemberModalOpen] = useState(false);
   const [memberToRemove, setMemberToRemove] = useState(null);
   const [isRemovingMember, setIsRemovingMember] = useState(false);
+  const [isGroupChatOpen, setIsGroupChatOpen] = useState(false);
+  const [unreadMessageCount, setUnreadMessageCount] = useState(0);
 
   const handleCompetitionClick = (competitionId) => {
     if (competitionId) {
@@ -191,6 +196,33 @@ const Team = () => {
     navigate(`/dashboard/profile/${memberId}`);
   };
 
+  const handleOpenGroupChat = async () => {
+    if (!team) return;
+    
+    try {
+      // Create group chat if it doesn't exist
+      if (!team.groupChat) {
+        const chat = await createGroupChat(team._id);
+        setTeam(prevTeam => ({
+          ...prevTeam,
+          groupChat: chat._id
+        }));
+      }
+      
+      setIsGroupChatOpen(true);
+    } catch (err) {
+      console.error('Failed to open group chat:', err);
+      toast.error('Failed to open group chat', {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+    }
+  };
+
   useEffect(() => {
     const loadTeam = async () => {
       try {
@@ -205,6 +237,14 @@ const Team = () => {
       loadTeam();
     }
   }, [teamId, fetchTeamById, team]);
+
+  // Update unread message count when team changes
+  useEffect(() => {
+    if (team && team.groupChat) {
+      const count = getUnreadCount(team.groupChat);
+      setUnreadMessageCount(count);
+    }
+  }, [team, getUnreadCount]);
 
   if (loading) {
     return (
@@ -319,6 +359,8 @@ const Team = () => {
                 <UserPlus size={20} className="text-venom-purple" />
                 <span>Quick Add</span>
               </motion.button>
+              
+              {/* Group Chat Button with Unread Count */}
               <motion.button
                 whileHover={{ 
                   scale: 1.05,
@@ -326,10 +368,18 @@ const Team = () => {
                   transition: { duration: 0, scale: { duration: 0 }, boxShadow: { duration: 0 } }
                 }}
                 whileTap={{ scale: 0.95 }}
-                className="flex items-center gap-2 px-6 py-3 bg-symbiote-purple/20 border border-symbiote-purple/30 rounded-xl hover:bg-symbiote-purple/30 transition-all duration-[50ms]"
+                onClick={handleOpenGroupChat}
+                className="flex items-center gap-2 px-6 py-3 bg-symbiote-purple/20 border border-symbiote-purple/30 rounded-xl hover:bg-symbiote-purple/30 transition-all duration-[50ms] relative"
               >
                 <MessageSquare size={20} className="text-symbiote-purple" />
                 <span>Group Chat</span>
+                
+                {/* Unread Message Count Badge */}
+                {unreadMessageCount > 0 && (
+                  <div className="absolute -top-2 -right-2 bg-venom-purple text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                    {unreadMessageCount}
+                  </div>
+                )}
               </motion.button>
             </div>
           </div>
@@ -629,6 +679,14 @@ const Team = () => {
           </motion.div>
         </div>
       )}
+      
+      {/* Group Chat Modal */}
+      <GroupChatModal 
+        isOpen={isGroupChatOpen}
+        onClose={() => setIsGroupChatOpen(false)}
+        teamId={team.groupChat}
+        teamName={team.name}
+      />
       
       <style>{`
         .scrollbar-hide {

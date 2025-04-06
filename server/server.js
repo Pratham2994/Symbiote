@@ -11,6 +11,7 @@ const githubRankRoutes = require('./routes/githubRankRoutes');
 const friendRequestRoutes = require('./routes/friendRequestRoutes');
 const userProfileRoutes = require ('./routes/userProfileRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
+const groupChatRoutes = require('./routes/groupChatRoutes');
 const path = require('path');
 
 const helmet = require('helmet');
@@ -74,19 +75,51 @@ app.use((err, req, res, next) => {
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
 
+  // Store userId for this socket
+  let authenticatedUserId = null;
+
   // Authenticate socket connection
   socket.on('authenticate', (userId) => {
     if (userId) {
+      authenticatedUserId = userId;
       socket.join(userId.toString());
-      console.log('User authenticated:', userId);
+      console.log('User authenticated:', userId, 'Socket:', socket.id);
       
       // Send initial notification count
       socket.emit('ready', { status: 'connected' });
     }
   });
 
+  // Join team chat room
+  socket.on('joinTeamChat', (teamId) => {
+    if (teamId && authenticatedUserId) {
+      const roomName = `team-${teamId}`;
+      socket.join(roomName);
+      console.log(`User ${authenticatedUserId} (Socket: ${socket.id}) joined team chat: ${roomName}`);
+      
+      // Log all rooms this socket is in
+      const rooms = Array.from(socket.rooms);
+      console.log(`Socket ${socket.id} is now in rooms:`, rooms);
+    } else {
+      console.log('Unauthorized attempt to join team chat:', teamId, 'Socket:', socket.id);
+    }
+  });
+
+  // Leave team chat room
+  socket.on('leaveTeamChat', (teamId) => {
+    if (teamId && authenticatedUserId) {
+      const roomName = `team-${teamId}`;
+      socket.leave(roomName);
+      console.log(`User ${authenticatedUserId} (Socket: ${socket.id}) left team chat: ${roomName}`);
+      
+      // Log all rooms this socket is in
+      const rooms = Array.from(socket.rooms);
+      console.log(`Socket ${socket.id} is now in rooms:`, rooms);
+    }
+  });
+
   socket.on('disconnect', () => {
-    console.log('User disconnected:', socket.id);
+    console.log('User disconnected:', socket.id, authenticatedUserId ? `(User: ${authenticatedUserId})` : '');
   });
 });
 
@@ -99,6 +132,7 @@ app.use('/api/searchForFriends', searchForFriendRoutes);
 app.use('/api/friend-requests', friendRequestRoutes);
 app.use('/api/user', userProfileRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/group-chat', groupChatRoutes);
 
 // Connect MongoDB
 connectDB();
