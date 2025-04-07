@@ -26,7 +26,7 @@ const server = http.createServer(app);
 // Socket.IO setup with proper CORS
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:5173",
+    origin: "http://192.168.29.249:5173",
     methods: ["GET", "POST", "PATCH", "DELETE"],
     credentials: true
   },
@@ -43,7 +43,7 @@ const PORT = process.env.PORT || 5000;
 
 // CORS configuration
 const corsOptions = {
-  origin: [ 'http://localhost:5173'],
+  origin: [ 'http://192.168.29.249:5173'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
   credentials: true,
@@ -138,6 +138,6 @@ app.use('/api/group-chat', groupChatRoutes);
 connectDB();
 
 // Start Server
-server.listen(PORT, () => {
+server.listen(PORT,'192.168.29.249', () => {
   console.log(`Server running on port ${PORT}`);
 });
