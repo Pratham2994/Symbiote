@@ -2,11 +2,6 @@
 
 class MatchScoreCalculator:
     def __init__(self, weights=None):
-        """
-        Initialize the calculator with custom weights.
-        Only 'frontend' and 'backend' keys are used (EQ is handled separately).
-        If no weights provided, defaults to 0.5 for both.
-        """
         if weights:
             self.weights = {k: v for k, v in weights.items() if k in ['frontend', 'backend']}
             if 'frontend' not in self.weights:
@@ -18,14 +13,6 @@ class MatchScoreCalculator:
 
     @staticmethod
     def get_band(score: int) -> int:
-        """
-        Returns the band number for a given score.
-        Bands:
-          Band 1: 0–35
-          Band 2: 36–65
-          Band 3: 66–85
-          Band 4: 86–100
-        """
         if 0 <= score <= 36:
             return 1
         elif 36 < score <= 66:
@@ -40,22 +27,9 @@ class MatchScoreCalculator:
 
     @staticmethod
     def compute_skill_contribution(score1: int, score2: int) -> (float, int, int):
-        """
-        Computes the contribution for a given skill based on the candidate scores.
-        The base score is 50. Adjustments are based on the difference in bands:
-          - Same band (or borderline case, e.g. 35 vs 36): bonus of +15.
-          - One band difference: bonus of +5.
-          - Two band difference: penalty of -10.
-          - Three or more band difference: penalty of -20.
-        The final contribution is clamped between 0 and 100.
-        
-        Returns:
-          contribution (float), band1 (int), band2 (int)
-        """
         band1 = MatchScoreCalculator.get_band(score1)
         band2 = MatchScoreCalculator.get_band(score2)
 
-        # Handle borderline case: e.g., 35 vs 36.
         if abs(score1 - score2) == 1 and (
             (score1 == 35 and score2 == 36) or (score1 == 36 and score2 == 35)
         ):
@@ -68,7 +42,7 @@ class MatchScoreCalculator:
                 adjustment = 5
             elif abs_band_diff == 2:
                 adjustment = -10
-            else:  # abs_band_diff >= 3
+            else: 
                 adjustment = -20
 
         contribution = 50 + adjustment
@@ -76,32 +50,6 @@ class MatchScoreCalculator:
         return contribution, band1, band2
 
     def calculate_combined_score(self, candidate1_scores: dict, candidate2_scores: dict) -> float:
-        """
-        Calculates the overall match percentage between two candidates.
-        
-        **For Frontend & Backend:**
-          - Compute a contribution score for each skill.
-          - If complementary strengths are detected (one candidate strong in one skill
-            and weak in the other), add a bonus that grows with the average difference,
-            but only if the average difference is at least 15.
-          - Aggregate the contributions using the provided weights.
-        
-        **For EQ (Team Chemistry):**
-          - Compute the average EQ score.
-        
-        The final match score is a weighted combination:
-          - 75% weight for the combined Frontend/Backend score.
-          - 25% weight for the EQ score.
-        
-        Finally, a linear transformation is applied to expand the range
-        from roughly [35,75] to [10,90]:
-          scaled_score = 2 * final_score - 60,
-        clamped between 10 and 90.
-        
-        Returns:
-          A float representing the overall match percentage (10–90).
-        """
-        # --- Frontend & Backend Calculation ---
         frontend_score1 = candidate1_scores.get("frontend", 0)
         frontend_score2 = candidate2_scores.get("frontend", 0)
         backend_score1 = candidate1_scores.get("backend", 0)
@@ -110,13 +58,11 @@ class MatchScoreCalculator:
         frontend_contrib, f_band1, f_band2 = self.compute_skill_contribution(frontend_score1, frontend_score2)
         backend_contrib, b_band1, b_band2 = self.compute_skill_contribution(backend_score1, backend_score2)
 
-        # Calculate base overall score from Frontend/Backend using weights.
         w_front = self.weights.get("frontend", 0.5)
         w_back = self.weights.get("backend", 0.5)
         total_weight = w_front + w_back
         overall_fb_base = (frontend_contrib * w_front + backend_contrib * w_back) / total_weight
 
-        # --- Complementary Bonus Calculation ---
         diff_frontend = frontend_score1 - frontend_score2
         diff_backend = backend_score1 - backend_score2
         complementary = diff_frontend * diff_backend < 0
@@ -124,30 +70,25 @@ class MatchScoreCalculator:
         
         bonus = 0
         if complementary and avg_diff >= 15:
-            # Bonus grows with the average difference but is capped.
             bonus = min((avg_diff / 100) * 70, 45)
         
         overall_fb = overall_fb_base + bonus
         overall_fb = max(0, min(100, overall_fb))
 
-        # --- EQ (Team Chemistry) Calculation ---
         eq1 = candidate1_scores.get("eq", 50)
         eq2 = candidate2_scores.get("eq", 50)
         eq_avg = (eq1 + eq2) / 2
 
-        # --- Final Weighted Combination ---
         fb_weight = 0.75
         eq_weight = 0.25
         final_score = overall_fb * fb_weight + eq_avg * eq_weight
         final_score = max(0, min(100, final_score))
 
-        # --- Linear Transformation ---
         scaled_score = 2 * final_score - 60
         scaled_score = max(10, min(90, scaled_score))
         return scaled_score
 
 
-# ---------------- Test Cases ----------------
 
 if __name__ == "__main__":
     calculator = MatchScoreCalculator()
@@ -159,7 +100,6 @@ if __name__ == "__main__":
     print(f"Test 1 - Similar intermediate skills: {score:.2f}%")
     
     # Test case 2: Complementary skills (extreme)
-    # Expected to be much higher due to strong complementary strengths.
     person_a = {"frontend": 90, "backend": 30, "eq": 50}
     person_b = {"frontend": 30, "backend": 90, "eq": 50}
     score = calculator.calculate_combined_score(person_a, person_b)
