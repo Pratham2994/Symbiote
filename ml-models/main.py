@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import os
 import json
+import tempfile
 from dotenv import load_dotenv
 from Resume_github_score import analyze_resume, analyze_github
 from Eq_score import calculate_eq_score
@@ -92,16 +93,20 @@ async def analyze_candidate(
         print(f"[DEBUG] Received GitHub link: {github_link}")
         print(f"[DEBUG] Received EQ answers: {eq_answers}")
 
-        # Save the uploaded resume temporarily
-        temp_resume_path = "temp_resume.pdf"
-        print(f"[DEBUG] Saving resume to temporary path: {temp_resume_path}")
-        with open(temp_resume_path, "wb") as buffer:
-            content = await resume.read()
+        # Save the uploaded resume to a file of its own: a shared name let two
+        # signups at the same time overwrite (and score) each other's resume.
+        content = await resume.read()
+        with tempfile.NamedTemporaryFile(prefix="resume-", suffix=".pdf", delete=False) as buffer:
             buffer.write(content)
+            temp_resume_path = buffer.name
+        print(f"[DEBUG] Saved resume to temporary path: {temp_resume_path}")
 
         # Analyze resume
         print("[DEBUG] Starting resume analysis")
-        resume_analysis = analyze_resume(temp_resume_path)
+        try:
+            resume_analysis = analyze_resume(temp_resume_path)
+        finally:
+            os.remove(temp_resume_path)
         print(f"[DEBUG] Resume analysis results: {resume_analysis}")
         
         # Analyze GitHub if a link is provided and extract only frontend/backend scores
@@ -142,10 +147,6 @@ async def analyze_candidate(
                 print(f"[DEBUG] Raw EQ answers: {eq_answers}")
                 final_eq_score = None
 
-        # Clean up temporary resume file
-        print("[DEBUG] Cleaning up temporary resume file")
-        os.remove(temp_resume_path)
-        
         # Compute combined final scores using weight: GitHub = 2, Resume = 1.
         final_frontend = None
         final_backend = None
