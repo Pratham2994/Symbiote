@@ -28,7 +28,9 @@ const findMatch = async (candidate1Scores, candidate2Scores, weights = null) => 
 
 const getTeamsByUserAndCompetition = async (req, res) => {
     try {
-        const { user_id, competition_id } = req.body;
+        const { competition_id } = req.body;
+        // Teams are scored for the signed-in user, whatever the body says.
+        const user_id = String(req.user.id);
 
         // Input validation
         if (!user_id || !competition_id) {

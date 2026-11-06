@@ -4,7 +4,9 @@ const Competition = require('../models/competition');
 
 exports.createTeam = async (req, res) => {
     try {
-        const { name, user_id, competition_id } = req.body;
+        const { name, competition_id } = req.body;
+        // The team is created by the signed-in user, whatever the body says.
+        const user_id = req.user.id;
         
         // Basic required fields validation
         if (!name || !user_id || !competition_id) {

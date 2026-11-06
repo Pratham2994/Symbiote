@@ -18,15 +18,22 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const http = require('http');
 const { Server } = require('socket.io');
+const jwt = require('jsonwebtoken');
+const GroupChat = require('./models/GroupChat');
+const Team = require('./models/Team');
 
 dotenv.config();
+// Where the client is served from, and which address the API listens on.
+const CLIENT_ORIGINS = (process.env.CLIENT_URL || 'http://localhost:5173')
+  .split(',').map((o) => o.trim()).filter(Boolean);
+const HOST = process.env.HOST || 'localhost';
 const app = express();
 const server = http.createServer(app);
 
 // Socket.IO setup with proper CORS
 const io = new Server(server, {
   cors: {
-    origin: "http://192.168.29.249:5173",
+    origin: CLIENT_ORIGINS,
     methods: ["GET", "POST", "PATCH", "DELETE"],
     credentials: true
   },
@@ -43,7 +50,7 @@ const PORT = process.env.PORT || 5000;
 
 // CORS configuration
 const corsOptions = {
-  origin: [ 'http://192.168.29.249:5173'],
+  origin: CLIENT_ORIGINS,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
   credentials: true,
@@ -71,6 +78,19 @@ app.use((err, req, res, next) => {
   next();
 });
 
+// A socket is the user its login cookie says, never the id it sends.
+io.use((socket, next) => {
+  const cookie = socket.handshake.headers.cookie || '';
+  const match = cookie.split(';').map((c) => c.trim()).find((c) => c.startsWith('token='));
+  try {
+    const decoded = jwt.verify(decodeURIComponent(match.slice(6)), process.env.JWT_SECRET);
+    socket.data.userId = String(decoded.id);
+    next();
+  } catch (err) {
+    next(new Error('Not signed in'));
+  }
+});
+
 // Socket.IO connection handling
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
@@ -80,7 +100,8 @@ io.on('connection', (socket) => {
 
   // Authenticate socket connection
   socket.on('authenticate', (userId) => {
-    if (userId) {
+    // Only your own notification room, whatever id is sent.
+    if (userId && String(userId) === socket.data.userId) {
       authenticatedUserId = userId;
       socket.join(userId.toString());
       console.log('User authenticated:', userId, 'Socket:', socket.id);
@@ -91,8 +112,18 @@ io.on('connection', (socket) => {
   });
 
   // Join team chat room
-  socket.on('joinTeamChat', (teamId) => {
-    if (teamId && authenticatedUserId) {
+  socket.on('joinTeamChat', async (teamId) => {
+    // Only a member of the team may listen to its chat.
+    let member = false;
+    try {
+      const chat = await GroupChat.findById(teamId).select('participants teamId');
+      const me = socket.data.userId;
+      member = !!chat && (chat.participants.some((p) => p.toString() === me)
+        || !!(await Team.exists({ _id: chat.teamId, members: me })));
+    } catch (err) {
+      member = false;
+    }
+    if (teamId && authenticatedUserId && member) {
       const roomName = `team-${teamId}`;
       socket.join(roomName);
       console.log(`User ${authenticatedUserId} (Socket: ${socket.id}) joined team chat: ${roomName}`);
@@ -138,6 +169,6 @@ app.use('/api/group-chat', groupChatRoutes);
 connectDB();
 
 // Start Server
-server.listen(PORT,'192.168.29.249', () => {
-  console.log(`Server running on port ${PORT}`);
+server.listen(PORT, HOST, () => {
+  console.log(`Server running on http://${HOST}:${PORT}`);
 });

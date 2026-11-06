@@ -40,7 +40,8 @@ const searchFriendbyUsername = async (req, res) => {
 
 const getAllFriends = async (req, res) => {
     try {
-        const { userId } = req.body;
+        // Only the signed-in user's own friends.
+        const userId = req.user.id;
 
         // Check if userId is provided
         if (!userId) {

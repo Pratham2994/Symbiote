@@ -213,7 +213,7 @@ const loginUser = async (req, res) => {
         }
 
         // Find the user by email in the database
-        const user = await User.findOne({ email });
+        const user = await User.findOne({ email }).select('+password');
        
 
         if (!user) {
