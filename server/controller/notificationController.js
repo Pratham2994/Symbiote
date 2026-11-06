@@ -70,8 +70,9 @@ const notificationController = {
   // Delete a notification
   deleteNotification: async (req, res) => {
     try {
-      const notificationId = req.params.id;
-      const notification = await Notification.findById(notificationId);
+      // The route names it :notificationId; only your own can be deleted.
+      const { notificationId } = req.params;
+      const notification = await Notification.findOne({ _id: notificationId, recipient: req.user.id });
       
       if (!notification) {
         return res.status(404).json({ success: false, message: 'Notification not found' });
@@ -95,8 +96,9 @@ const notificationController = {
   // Mark a notification as read
   markAsRead: async (req, res) => {
     try {
-      const notificationId = req.params.id;
-      const notification = await Notification.findById(notificationId);
+      // The route names it :notificationId; only your own can be marked.
+      const { notificationId } = req.params;
+      const notification = await Notification.findOne({ _id: notificationId, recipient: req.user.id });
       
       if (!notification) {
         return res.status(404).json({ success: false, message: 'Notification not found' });
@@ -118,7 +120,8 @@ const notificationController = {
   // Mark all notifications as read
   markAllAsRead: async (req, res) => {
     try {
-      const userId = req.user._id;
+      // The token carries `id`; `_id` was undefined and matched every user.
+      const userId = req.user.id;
       await Notification.updateMany(
         { recipient: userId, read: false },
         { $set: { read: true } }
